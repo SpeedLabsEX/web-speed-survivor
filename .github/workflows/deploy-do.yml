@@ -1,0 +1,31 @@
+name: Deploy DigitalOcean
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to Container Registry
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Build and push image
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          source infra/digitalocean/env.sh
+          bash infra/digitalocean/build-push.sh

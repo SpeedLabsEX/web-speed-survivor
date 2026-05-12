@@ -1,0 +1,4 @@
+# Placeholder so the directory exists for the Docker build's
+# `COPY --from=builder /app/public ./public` instruction. Drop your
+# favicon.png and any other static assets here and Next will serve
+# them from the root, e.g. `/favicon.png`.

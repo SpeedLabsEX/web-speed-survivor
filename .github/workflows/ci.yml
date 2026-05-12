@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-build:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --network-timeout 600000
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      # `next build` proves the app compiles end-to-end, which is the
+      # equivalent of api-speed-survivor's "import main" smoke check.
+      # NEXT_PUBLIC_* values are read from the tracked .env.production file.
+      - name: Build (production)
+        run: yarn build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    # Run in parallel with lint-build; if it fails, the deploy workflow
+    # would also fail, so catching it here on PR is the point.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile
+          push: false
+          tags: speed-survivor-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

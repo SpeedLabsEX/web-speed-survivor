@@ -1,0 +1,40 @@
+# Build artifacts and caches that have no business being in the image
+# context. Keeps `docker build` fast and the layer cache predictable.
+
+.git
+.github
+.next
+.vercel
+.vscode
+.idea
+.DS_Store
+node_modules
+out
+build
+coverage
+*.tsbuildinfo
+
+# Local-only env files. .env.production IS shipped (intentional — it has
+# only NEXT_PUBLIC_* values and is needed at `next build` time).
+.env
+.env.local
+.env.local.example
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.example
+
+# Editor / OS noise
+*.log
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Repo docs that don't need to ride into the image
+docs
+DESIGN.md
+PRODUCT.md
+README.md

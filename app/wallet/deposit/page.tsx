@@ -1,0 +1,292 @@
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import {
+	PackagePicker,
+	depositPackages,
+	type DepositPackage,
+} from "@/components/deposit/PackagePicker";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
+import { formatBalance } from "@/lib/format";
+import { balanceCents, useBalance } from "@/lib/wallet-hooks";
+
+const CoinflowEmbed = dynamic(
+	() => import("@/components/deposit/CoinflowEmbed").then((m) => m.CoinflowEmbed),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="flex h-[720px] items-center justify-center rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-[var(--color-panel)]">
+				<Spinner size={28} />
+			</div>
+		),
+	},
+);
+
+interface SessionKeyResponse {
+	sessionKey: string;
+	accountUuid: string;
+	email: string | null;
+	expiresAt: string | null;
+}
+
+type Stage = "select" | "checkout" | "success";
+
+const POLL_TIMEOUT_MS = 60_000;
+const POLL_INTERVAL_MS = 3_000;
+
+export default function DepositPage() {
+	const router = useRouter();
+	const queryClient = useQueryClient();
+	const balanceQuery = useBalance();
+	const initialBalanceRef = useRef<number | null>(null);
+
+	const [stage, setStage] = useState<Stage>("select");
+	const [selectedPkg, setSelectedPkg] = useState<DepositPackage | null>(
+		depositPackages().find((p) => p.id === "p_5000") ??
+			depositPackages()[0] ??
+			null,
+	);
+	const [customCents, setCustomCents] = useState<number | null>(null);
+	const [session, setSession] = useState<SessionKeyResponse | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const [continueLoading, setContinueLoading] = useState(false);
+	const [waitingForBalance, setWaitingForBalance] = useState(false);
+
+	const onContinue = useCallback(async () => {
+		if (!selectedPkg) {
+			setError("Choose an amount.");
+			return;
+		}
+		if (selectedPkg.cents < 1) {
+			setError("Amount must be at least $0.01.");
+			return;
+		}
+		setError(null);
+		setContinueLoading(true);
+		try {
+			const res = await fetch("/api/coinflow/session-key", {
+				method: "POST",
+				credentials: "same-origin",
+			});
+			const text = await res.text();
+			const data = text ? JSON.parse(text) : {};
+			if (!res.ok) {
+				throw new Error(data?.error || "Could not start checkout.");
+			}
+			initialBalanceRef.current = balanceCents(balanceQuery.data);
+			setSession(data as SessionKeyResponse);
+			setStage("checkout");
+		} catch (err) {
+			setError(err instanceof Error ? err.message : String(err));
+		} finally {
+			setContinueLoading(false);
+		}
+	}, [selectedPkg, balanceQuery.data]);
+
+	const onSuccess = useCallback(() => {
+		setWaitingForBalance(true);
+		setStage("success");
+	}, []);
+
+	useEffect(() => {
+		if (!waitingForBalance) return;
+		const start = Date.now();
+		const initial = initialBalanceRef.current ?? 0;
+
+		const tick = async () => {
+			await queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
+			await queryClient.invalidateQueries({
+				queryKey: ["wallet", "transactions"],
+			});
+			const next = balanceCents(
+				queryClient.getQueryData(["wallet", "balance"]),
+			);
+			if (next !== null && next > initial) {
+				setWaitingForBalance(false);
+				setTimeout(() => router.push("/wallet"), 2_000);
+				return true;
+			}
+			if (Date.now() - start > POLL_TIMEOUT_MS) {
+				setWaitingForBalance(false);
+				return true;
+			}
+			return false;
+		};
+
+		let cancelled = false;
+		const loop = async () => {
+			while (!cancelled) {
+				const done = await tick();
+				if (done) return;
+				await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+			}
+		};
+		void loop();
+		return () => {
+			cancelled = true;
+		};
+	}, [waitingForBalance, queryClient, router]);
+
+	if (stage === "success") {
+		return (
+			<SuccessView
+				waiting={waitingForBalance}
+				balanceCents={balanceCents(balanceQuery.data)}
+			/>
+		);
+	}
+
+	return (
+		<div className="flex flex-col gap-10">
+			<div className="flex items-center justify-between">
+				<Link
+					href="/wallet"
+					className="text-cta flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+				>
+					<ArrowLeft size={14} />
+					Wallet
+				</Link>
+				<Link
+					href="/wallet/deposit/hosted"
+					className="text-eyebrow text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+				>
+					Hosted checkout
+				</Link>
+			</div>
+
+			<header>
+				<div className="text-eyebrow text-[var(--color-spine)]">
+					Add funds
+				</div>
+				<h1 className="text-page-title mt-3 text-[var(--color-text)]">
+					{stage === "checkout" ? "Complete checkout" : "Pick an amount"}
+				</h1>
+			</header>
+
+			{error ? <Alert tone="error">{error}</Alert> : null}
+
+			{stage === "select" ? (
+				<>
+					<PackagePicker
+						selectedId={selectedPkg?.id ?? null}
+						customCents={customCents}
+						onSelect={(p) => {
+							setSelectedPkg(p);
+							if (p.id !== "custom") setCustomCents(null);
+						}}
+						onCustomChange={setCustomCents}
+					/>
+
+					<div className="flex flex-col gap-4 border-t border-[var(--color-hairline)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-baseline gap-3">
+							<span className="text-eyebrow text-[var(--color-text-muted)]">
+								Total
+							</span>
+							<span className="text-[28px] font-bold tabular text-[var(--color-text)]">
+								{formatBalance(selectedPkg?.cents ?? 0)}
+							</span>
+						</div>
+						<Button
+							variant="primary"
+							size="lg"
+							onClick={onContinue}
+							loading={continueLoading}
+							disabled={
+								!selectedPkg || selectedPkg.cents < 1 || continueLoading
+							}
+							className="sm:min-w-[220px]"
+						>
+							Continue to checkout
+						</Button>
+					</div>
+				</>
+			) : null}
+
+			{stage === "checkout" && session && selectedPkg ? (
+				<>
+					<CoinflowEmbed
+						sessionKey={session.sessionKey}
+						accountUuid={session.accountUuid}
+						email={session.email}
+						subtotalCents={selectedPkg.cents}
+						packageId={selectedPkg.id}
+						onSuccess={onSuccess}
+					/>
+					<button
+						type="button"
+						onClick={() => {
+							setStage("select");
+							setSession(null);
+						}}
+						className="text-eyebrow text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors mx-auto"
+					>
+						← Change amount
+					</button>
+				</>
+			) : null}
+		</div>
+	);
+}
+
+function SuccessView({
+	waiting,
+	balanceCents,
+}: {
+	waiting: boolean;
+	balanceCents: number | null;
+}) {
+	return (
+		<div className="flex min-h-[60vh] flex-col items-start justify-center gap-6">
+			<div className="text-eyebrow text-[var(--color-spine)] flex items-center gap-3">
+				{waiting ? <Spinner size={12} /> : <span aria-hidden>●</span>}
+				{waiting ? "Crediting" : "Complete"}
+			</div>
+
+			<h1 className="text-display text-[var(--color-text)]">
+				{waiting ? (
+					<>
+						Funds
+						<br />
+						en route.
+					</>
+				) : (
+					<>
+						Funds
+						<br />
+						added.
+					</>
+				)}
+			</h1>
+
+			{!waiting && balanceCents !== null ? (
+				<div>
+					<div className="text-eyebrow text-[var(--color-text-muted)]">
+						New balance
+					</div>
+					<div className="text-bignum mt-3 text-[var(--color-text)]">
+						{formatBalance(balanceCents)}
+					</div>
+				</div>
+			) : (
+				<p className="max-w-md text-[15px] text-[var(--color-text-muted)]">
+					Coinflow confirmed your payment. We&apos;re waiting for the wallet
+					credit to land — usually a few seconds.
+				</p>
+			)}
+
+			<Link href="/wallet" className="mt-2">
+				<Button variant="primary" size="lg">
+					Back to wallet
+				</Button>
+			</Link>
+		</div>
+	);
+}

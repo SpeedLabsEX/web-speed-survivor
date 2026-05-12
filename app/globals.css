@@ -1,0 +1,361 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   Speed Survivor design tokens
+   Source of truth: PRODUCT.md + DESIGN.md.
+   Lifted from mobile-speed-survivor's polished gameplay surfaces:
+   FeaturedContestCard.tsx, Question.tsx, GameStartingSoon.tsx.
+   ===================================================================== */
+@theme {
+	/* Stage (cabinet metal) */
+	--color-stage: #0a0a0a;
+	--color-panel: #171717;
+	--color-panel-2: #1f1f1f;
+	--color-hairline: #262626;
+	--color-hairline-2: #2f2f2f;
+	--color-ink: #0a0a0a;
+
+	/* Spine — the only accent */
+	--color-spine: #00e59b;
+	--color-spine-soft: rgba(0, 229, 155, 0.08);
+	--color-spine-glow: rgba(0, 229, 155, 0.35);
+
+	/* Risk */
+	--color-risk: #ef4444;
+	--color-risk-soft: rgba(239, 68, 68, 0.08);
+
+	/* Text */
+	--color-text: #fafafa;
+	--color-text-muted: #a3a3a3;
+	--color-text-dim: #525252;
+
+	/* Ambient drift palette — warm-grey only, no green/purple/cyan */
+	--color-ambient-1: #1a1a1f;
+	--color-ambient-2: #1f1e20;
+	--color-ambient-3: #29282a;
+
+	/* Radii */
+	--radius-input: 10px;
+	--radius-button: 12px;
+	--radius-tile: 14px;
+	--radius-panel: 16px;
+
+	/* Motion */
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+	/* Type */
+	--font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	--font-display: "Space Grotesk", "Geist", system-ui, sans-serif;
+	--font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular,
+		monospace;
+}
+
+/* =====================================================================
+   Geist (body) + Space Grotesk (display)
+   ===================================================================== */
+@font-face {
+	font-family: "Geist";
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-400-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Geist";
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-500-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Geist";
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-600-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Geist";
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-700-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Geist";
+	font-weight: 800;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-800-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Geist";
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-900-normal.woff2")
+		format("woff2");
+}
+@font-face {
+	font-family: "Space Grotesk";
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+	src: url("https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.1.0/files/space-grotesk-latin-700-normal.woff2")
+		format("woff2");
+}
+
+/* =====================================================================
+   Base
+   ===================================================================== */
+html,
+body,
+#root,
+#__next {
+	background: var(--color-stage);
+	color: var(--color-text);
+	min-height: 100%;
+}
+
+html {
+	color-scheme: dark;
+}
+
+body {
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+}
+
+::selection {
+	background: var(--color-spine);
+	color: var(--color-ink);
+}
+
+/* =====================================================================
+   Typography utilities
+   Match the roles in DESIGN.md → §Typography → Scale + weight.
+   ===================================================================== */
+.text-display {
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: clamp(48px, 9vw, 96px);
+	line-height: 0.95;
+	letter-spacing: -0.04em;
+	text-transform: uppercase;
+}
+
+.text-page-title {
+	font-family: var(--font-sans);
+	font-weight: 900;
+	font-size: clamp(28px, 5vw, 40px);
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+.text-bignum {
+	font-family: var(--font-sans);
+	font-weight: 800;
+	font-size: clamp(48px, 9vw, 72px);
+	line-height: 1;
+	letter-spacing: -0.03em;
+	font-variant-numeric: tabular-nums;
+}
+
+.text-section {
+	font-family: var(--font-sans);
+	font-weight: 900;
+	font-size: 14px;
+	line-height: 1;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+}
+
+.text-eyebrow {
+	font-family: var(--font-sans);
+	font-weight: 900;
+	font-size: 11px;
+	line-height: 1;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--color-text-muted);
+}
+
+.text-cta {
+	font-family: var(--font-sans);
+	font-weight: 900;
+	font-size: 14px;
+	line-height: 1;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+/* =====================================================================
+   Wordmark — typographic logo, replaces the green-circle placeholder
+   ===================================================================== */
+.wordmark {
+	font-family: var(--font-display);
+	font-weight: 700;
+	letter-spacing: -0.04em;
+	text-transform: uppercase;
+	color: var(--color-text);
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.18em;
+}
+.wordmark .dot {
+	display: inline-block;
+	width: 0.42em;
+	height: 0.42em;
+	background: var(--color-spine);
+	transform: translateY(-0.05em);
+	box-shadow: 0 0 24px var(--color-spine-glow);
+}
+
+/* =====================================================================
+   Press scale — 120ms cubic-out, mirrors mobile PressableScale
+   ===================================================================== */
+.press-scale {
+	transition: transform 120ms var(--ease-out), filter 120ms var(--ease-out),
+		box-shadow 200ms var(--ease-out), background-color 120ms var(--ease-out),
+		border-color 120ms var(--ease-out), color 120ms var(--ease-out);
+}
+.press-scale:active:not(:disabled) {
+	transform: scale(0.97);
+}
+.press-scale:disabled {
+	opacity: 0.45;
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.press-scale:active:not(:disabled) {
+		transform: none;
+		opacity: 0.85;
+	}
+}
+
+/* =====================================================================
+   Focus ring — emerald, 2px, 2px offset
+   ===================================================================== */
+*:focus-visible {
+	outline: 2px solid var(--color-spine);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
+
+/* =====================================================================
+   Ambient drift — warm-grey orbs only, slow 60-80s loops
+   No green/purple/cyan. The "alive but disciplined" backdrop.
+   ===================================================================== */
+.ambient {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+.ambient .orb {
+	position: absolute;
+	aspect-ratio: 1;
+	border-radius: 9999px;
+	filter: blur(120px);
+	opacity: 0.4;
+	will-change: transform;
+}
+.ambient .orb.a {
+	width: 38vw;
+	background: radial-gradient(
+		circle at 35% 35%,
+		var(--color-ambient-3) 0%,
+		var(--color-ambient-2) 40%,
+		transparent 70%
+	);
+	top: -10vw;
+	left: -8vw;
+	animation: drift-a 64s var(--ease-out) infinite alternate;
+}
+.ambient .orb.b {
+	width: 46vw;
+	background: radial-gradient(
+		circle at 50% 50%,
+		var(--color-ambient-2) 0%,
+		var(--color-ambient-1) 50%,
+		transparent 75%
+	);
+	top: 35%;
+	right: -16vw;
+	animation: drift-b 78s var(--ease-out) infinite alternate;
+}
+.ambient .orb.c {
+	width: 34vw;
+	background: radial-gradient(
+		circle at 40% 40%,
+		var(--color-ambient-3) 0%,
+		var(--color-ambient-1) 45%,
+		transparent 70%
+	);
+	bottom: -12vw;
+	left: 28%;
+	animation: drift-c 72s var(--ease-out) infinite alternate;
+}
+
+@keyframes drift-a {
+	0% {
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+	100% {
+		transform: translate3d(8vw, 6vw, 0) scale(1.12);
+	}
+}
+@keyframes drift-b {
+	0% {
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+	100% {
+		transform: translate3d(-10vw, 4vw, 0) scale(1.08);
+	}
+}
+@keyframes drift-c {
+	0% {
+		transform: translate3d(0, 0, 0) scale(1);
+	}
+	100% {
+		transform: translate3d(6vw, -8vw, 0) scale(1.15);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ambient .orb {
+		animation: none !important;
+	}
+}
+
+/* =====================================================================
+   Subtle scrollbar
+   ===================================================================== */
+*::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+	background: var(--color-hairline);
+	border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+	background: var(--color-hairline-2);
+}
