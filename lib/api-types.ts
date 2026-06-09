@@ -67,3 +67,50 @@ export interface WalletTransactionList {
 	offset?: number;
 	total?: number;
 }
+
+/**
+ * Public profile shapes — mirrors
+ * api-speed-survivor/modules/public_profiles/dtos/public_profile.py
+ * (GET /api/v1/public/profiles/{username}).
+ */
+export interface PublicProfileSocialLinks {
+	x_handle: string | null;
+	discord: string | null;
+	telegram: string | null;
+	website_url: string | null;
+}
+
+export interface PublicProfileStats {
+	games_played: number;
+	pnl: number;
+	pnl_percent: number;
+	accuracy: number;
+	win_rate: number;
+	average_finish_rank: number | null;
+	best_finish: number | null;
+	biggest_hit: number | null;
+	top_three_finishes: number;
+	current_win_streak: number;
+	longest_win_streak: number;
+}
+
+export interface PublicRecentActivityItem {
+	contest_uuid: string;
+	contest_name: string;
+	contest_date: string | null;
+	final_placement: number;
+	prize_amount: number;
+	entry_fee: number;
+}
+
+export interface PublicProfileResponse {
+	account_uuid: string;
+	username: string | null;
+	bio: string | null;
+	avatar_uuid: string | null;
+	avatar_image_url: string | null;
+	emoji: string | null;
+	social_links: PublicProfileSocialLinks;
+	stats: PublicProfileStats;
+	recent_activity: PublicRecentActivityItem[];
+}
