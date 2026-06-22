@@ -3,6 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
+import { WithdrawFlow } from "@/components/withdraw/WithdrawFlow";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { env } from "@/lib/env";
@@ -45,35 +46,6 @@ function ComingSoon() {
 					Back to wallet
 				</Button>
 			</Link>
-		</div>
-	);
-}
-
-function WithdrawFlow() {
-	return (
-		<div className="flex flex-col gap-10">
-			<Link
-				href="/wallet"
-				className="text-cta flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-			>
-				<ArrowLeft size={14} />
-				Wallet
-			</Link>
-
-			<header>
-				<div className="text-eyebrow text-[var(--color-spine)]">Withdraw</div>
-				<h1 className="text-page-title mt-3 text-[var(--color-text)]">
-					Choose a destination
-				</h1>
-			</header>
-
-			<Alert tone="warning">
-				Feature flag is on but the underlying API is not yet live. See
-				<code className="ml-1 font-mono text-[13px]">
-					docs/withdrawals.md
-				</code>
-				.
-			</Alert>
 		</div>
 	);
 }

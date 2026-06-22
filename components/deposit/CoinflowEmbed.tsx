@@ -15,6 +15,7 @@ export interface CoinflowEmbedProps {
 	email: string | null;
 	subtotalCents: number;
 	packageId: string;
+	webhookInfo?: Record<string, unknown>;
 	onSuccess: (paymentId: string) => void;
 }
 
@@ -41,6 +42,7 @@ export function CoinflowEmbed({
 	email,
 	subtotalCents,
 	packageId,
+	webhookInfo,
 	onSuccess,
 }: CoinflowEmbedProps) {
 	const [iframeHeight, setIframeHeight] = useState<number | null>(null);
@@ -88,6 +90,7 @@ export function CoinflowEmbed({
 					packageId,
 					coins: subtotalCents,
 					bonus: 0,
+					...(webhookInfo ?? {}),
 				}}
 				theme={THEME}
 				loaderBackground="#0a0a0a"

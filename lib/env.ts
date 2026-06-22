@@ -79,19 +79,16 @@ export const env = {
  * loud rather than silent.
  */
 export const serverEnv = {
-	get coinflowApiKey(): string {
+	get paymentsApiBaseUrl(): string {
 		if (typeof window !== "undefined") {
 			throw new Error(
-				"serverEnv.coinflowApiKey accessed in the browser. This is a leak.",
+				"serverEnv.paymentsApiBaseUrl accessed in the browser. This is a leak.",
 			);
 		}
-		const value = process.env.COINFLOW_API_KEY;
-		if (!value) {
-			throw new Error(
-				"COINFLOW_API_KEY is not set. Required for /api/coinflow/* route handlers.",
-			);
-		}
-		return value;
+		return (
+			process.env.PAYMENTS_API_BASE_URL ||
+			"http://127.0.0.1:8080"
+		).replace(/\/+$/, "");
 	},
 	get appJwtSharedSecret(): string | undefined {
 		if (typeof window !== "undefined") {
@@ -102,10 +99,3 @@ export const serverEnv = {
 		return process.env.APP_JWT_SHARED_SECRET || undefined;
 	},
 };
-
-/** Coinflow REST base URL — selects sandbox vs prod based on NEXT_PUBLIC_COINFLOW_ENV. */
-export function coinflowApiBaseUrl(): string {
-	return env.coinflow.env === "sandbox"
-		? "https://api-sandbox.coinflow.cash"
-		: "https://api.coinflow.cash";
-}

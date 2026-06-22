@@ -15,7 +15,9 @@ import {
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { env } from "@/lib/env";
 import { formatBalance } from "@/lib/format";
+import { paymentsFetch, type PaymentSessionResponse } from "@/lib/payments-api";
 import { balanceCents, useBalance } from "@/lib/wallet-hooks";
 
 const CoinflowEmbed = dynamic(
@@ -30,11 +32,12 @@ const CoinflowEmbed = dynamic(
 	},
 );
 
-interface SessionKeyResponse {
+interface DepositCheckoutSession {
 	sessionKey: string;
 	accountUuid: string;
 	email: string | null;
 	expiresAt: string | null;
+	webhookInfo: Record<string, unknown>;
 }
 
 type Stage = "select" | "checkout" | "success";
@@ -55,7 +58,7 @@ export default function DepositPage() {
 			null,
 	);
 	const [customCents, setCustomCents] = useState<number | null>(null);
-	const [session, setSession] = useState<SessionKeyResponse | null>(null);
+	const [session, setSession] = useState<DepositCheckoutSession | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [continueLoading, setContinueLoading] = useState(false);
 	const [waitingForBalance, setWaitingForBalance] = useState(false);
@@ -72,17 +75,45 @@ export default function DepositPage() {
 		setError(null);
 		setContinueLoading(true);
 		try {
-			const res = await fetch("/api/coinflow/session-key", {
+			const data = await paymentsFetch<PaymentSessionResponse>("sessions", {
 				method: "POST",
-				credentials: "same-origin",
+				body: JSON.stringify({
+					coreTransferId: `web-deposit:${Date.now()}:${crypto.randomUUID()}`,
+					direction: "deposit",
+					amountCents: selectedPkg.cents,
+					currency: "USD",
+					preferredActionType: "sdk",
+					returnUrl: `${env.appUrl}/wallet/deposit/return`,
+					stateCode: "NY",
+					countryCode: "US",
+					metadata: {
+						packageId: selectedPkg.id,
+						itemName: `Speed Survivor Deposit (${selectedPkg.label})`,
+						coins: String(selectedPkg.cents),
+						bonus: "0",
+					},
+				}),
 			});
-			const text = await res.text();
-			const data = text ? JSON.parse(text) : {};
-			if (!res.ok) {
-				throw new Error(data?.error || "Could not start checkout.");
+			const action = data.action;
+			const payload = action?.payload ?? {};
+			const sessionKey =
+				typeof payload.sessionKey === "string" ? payload.sessionKey : null;
+			const accountUuid =
+				typeof payload.accountUuid === "string" ? payload.accountUuid : null;
+			if (action?.type !== "sdk" || !sessionKey || !accountUuid) {
+				throw new Error("Could not start checkout.");
 			}
 			initialBalanceRef.current = balanceCents(balanceQuery.data);
-			setSession(data as SessionKeyResponse);
+			setSession({
+				sessionKey,
+				accountUuid,
+				email: typeof payload.email === "string" ? payload.email : null,
+				expiresAt: typeof action.expiresAt === "string" ? action.expiresAt : null,
+				webhookInfo:
+					payload.webhookInfo && typeof payload.webhookInfo === "object"
+						? (payload.webhookInfo as Record<string, unknown>)
+						: {},
+			});
 			setStage("checkout");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : String(err));
@@ -218,6 +249,7 @@ export default function DepositPage() {
 						email={session.email}
 						subtotalCents={selectedPkg.cents}
 						packageId={selectedPkg.id}
+						webhookInfo={session.webhookInfo}
 						onSuccess={onSuccess}
 					/>
 					<button

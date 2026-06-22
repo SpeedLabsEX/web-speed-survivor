@@ -106,22 +106,22 @@ The balance query stays correct as long as we sum only `status IN ('pending', 's
 
 ## Web app implementation (this repo)
 
-Files to add when the API is ready:
+The web app now talks to `api-payments` through `/api/payments/*` for
+payment orchestration and keeps `api-speed-survivor` for auth, balance, and
+transaction-history reads.
 
-- `app/wallet/withdraw/page.tsx` (already scaffolded — replace `WithdrawFlow`
-  with the real flow).
-- `app/api/coinflow/withdraw-session/route.ts` — proxies to
-  `POST /api/v1/wallet/withdrawals` and returns `{ sessionKey,
-  accountUuid }` to the client.
-- `components/withdraw/CoinflowWithdrawEmbed.tsx` — wraps
-  `<CoinflowWithdraw>` from `@coinflowlabs/react`, passing the session key
-  + theme + `onSuccess` callback that invalidates wallet queries.
-- KYC gating UI in `app/wallet/page.tsx` — show a banner if `me.kyc.status
-  !== "verified"`.
+- `app/api/payments/[...path]/route.ts` forwards the httpOnly app JWT to
+  `api-payments`.
+- `app/wallet/deposit/page.tsx` and `app/wallet/deposit/hosted/page.tsx`
+  create provider-agnostic deposit sessions through `api-payments`.
+- `app/wallet/withdraw/page.tsx` renders the withdrawal flow.
+- `components/withdraw/WithdrawFlow.tsx` handles KYC submission, Coinflow
+  bank/card linking, destination selection, quote preview, and withdrawal
+  creation.
 
-The feature flag `NEXT_PUBLIC_FEATURE_WITHDRAWALS` already gates the
-`/wallet/withdraw` page. Flip it to `true` once the API endpoints above
-are live in sandbox.
+The feature flag `NEXT_PUBLIC_FEATURE_WITHDRAWALS` gates the
+`/wallet/withdraw` page. Keep it enabled locally and flip production once the
+hosted `api-payments` env and Coinflow webhook are confirmed.
 
 ## References
 

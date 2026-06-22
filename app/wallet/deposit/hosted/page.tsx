@@ -11,7 +11,9 @@ import {
 } from "@/components/deposit/PackagePicker";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
+import { env } from "@/lib/env";
 import { formatBalance } from "@/lib/format";
+import { paymentsFetch, type PaymentSessionResponse } from "@/lib/payments-api";
 
 export default function HostedDepositPage() {
 	const [selectedPkg, setSelectedPkg] = useState<DepositPackage | null>(
@@ -31,26 +33,30 @@ export default function HostedDepositPage() {
 		setError(null);
 		setLoading(true);
 		try {
-			const res = await fetch("/api/coinflow/checkout-link", {
+			const data = await paymentsFetch<PaymentSessionResponse>("sessions", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				credentials: "same-origin",
 				body: JSON.stringify({
-					subtotalCents: selectedPkg.cents,
-					packageId: selectedPkg.id,
-					itemName: `Speed Survivor Deposit (${selectedPkg.label})`,
-					coins: selectedPkg.cents,
+					coreTransferId: `web-hosted-deposit:${Date.now()}:${crypto.randomUUID()}`,
+					direction: "deposit",
+					amountCents: selectedPkg.cents,
+					currency: "USD",
+					preferredActionType: "redirect",
+					returnUrl: `${env.appUrl}/wallet/deposit/return`,
+					stateCode: "NY",
+					countryCode: "US",
+					metadata: {
+						packageId: selectedPkg.id,
+						itemName: `Speed Survivor Deposit (${selectedPkg.label})`,
+						coins: String(selectedPkg.cents),
+						bonus: "0",
+					},
 				}),
 			});
-			const text = await res.text();
-			const data = text ? JSON.parse(text) : {};
-			if (!res.ok) {
-				throw new Error(data?.error || "Could not create checkout link.");
-			}
-			if (!data?.link) {
+			const link = data.action?.url;
+			if (!link) {
 				throw new Error("Coinflow did not return a checkout link.");
 			}
-			window.location.assign(data.link);
+			window.location.assign(link);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : String(err));
 			setLoading(false);

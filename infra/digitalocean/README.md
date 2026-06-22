@@ -59,12 +59,14 @@ Wire that path into App Platform's HTTP health check.
 `NEXT_PUBLIC_*` values are baked into the JS bundle at `next build` time
 from [`.env.production`](../../.env.production) (tracked in git on
 purpose — these are inlined into the client and have no secret to
-protect). Server-only secrets must be set as App Platform env vars on
-the `web-speed-survivor` service:
+protect). `PAYMENTS_API_BASE_URL` is also tracked there as a non-secret,
+server-only default for the hosted `api-payments` service. Server-only
+secrets must be set as App Platform env vars on the `web-speed-survivor`
+service:
 
 | Variable | Purpose |
 |---|---|
-| `COINFLOW_API_KEY` | Merchant secret key for `app/api/coinflow/*` route handlers. Required. |
+| `PAYMENTS_API_BASE_URL` | Base URL for `api-payments`, used by `/api/payments/*` route handlers. Defaults to `https://payments-api-zqlo6.ondigitalocean.app` in `.env.production`; override only if the hosted payments API URL changes. |
 | `APP_JWT_SHARED_SECRET` | Optional. If set, route handlers can verify the api-speed-survivor JWT locally instead of calling `/api/v1/me`. Currently unused — leave blank. |
 
 If you change anything in `.env.production`, you must rebuild and redeploy
