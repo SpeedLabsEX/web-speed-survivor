@@ -427,7 +427,7 @@ function IdentitySection({
 								onChange={(event) => setKyc({ ...kyc, zip: event.target.value })}
 							/>
 						</Field>
-						<Field label="SSN last 4">
+						<Field label="Last 4 digits of SSN">
 							<Input
 								value={kyc.ssn}
 								inputMode="numeric"
