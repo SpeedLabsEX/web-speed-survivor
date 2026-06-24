@@ -1,5 +1,5 @@
 /**
- * Centralized env access with sensible defaults for local development.
+ * Centralized env access with hosted-safe defaults.
  *
  * Public vars (NEXT_PUBLIC_*) are inlined by Next.js at build time and are
  * safe to read in the browser. Server-only vars are accessed via env.server.*
@@ -18,15 +18,12 @@ export const env = {
 	apiBaseUrl: requirePublic(
 		"NEXT_PUBLIC_API_BASE_URL",
 		process.env.NEXT_PUBLIC_API_BASE_URL,
-		// Default matches mobile-speed-survivor/src/config/env.ts FALLBACK_API_URL.
-		// Override locally with NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-		// (or wherever your api-speed-survivor instance runs) in .env.local.
 		"https://speed-survivor-api-3xewp.ondigitalocean.app",
 	),
 	appUrl: requirePublic(
 		"NEXT_PUBLIC_APP_URL",
 		process.env.NEXT_PUBLIC_APP_URL,
-		"http://localhost:8081",
+		"https://seal-app-nv6db.ondigitalocean.app",
 	),
 	firebase: {
 		apiKey: requirePublic(
@@ -87,7 +84,7 @@ export const serverEnv = {
 		}
 		return (
 			process.env.PAYMENTS_API_BASE_URL ||
-			"http://127.0.0.1:8080"
+			"https://payments-api-zqlo6.ondigitalocean.app"
 		).replace(/\/+$/, "");
 	},
 	get appJwtSharedSecret(): string | undefined {

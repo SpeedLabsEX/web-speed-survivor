@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import type {
 	WalletBalance,
-	WalletTransaction,
 	WalletTransactionList,
 } from "./api-types";
 
@@ -46,7 +45,7 @@ export function useTransactions(opts: UseTransactionsOpts = {}) {
 	return useQuery({
 		queryKey: ["wallet", "transactions", limit, offset],
 		queryFn: () =>
-			fetchJson<WalletTransactionList | { transactions: WalletTransaction[] }>(
+			fetchJson<WalletTransactionList>(
 				`/api/proxy/api/v1/wallet/transactions?limit=${limit}&offset=${offset}`,
 			),
 		refetchInterval: pollMs,

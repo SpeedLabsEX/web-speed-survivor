@@ -41,6 +41,7 @@ interface DepositCheckoutSession {
 }
 
 type Stage = "select" | "checkout" | "success";
+type CreditState = "waiting" | "credited" | "pending";
 
 const POLL_TIMEOUT_MS = 60_000;
 const POLL_INTERVAL_MS = 3_000;
@@ -61,7 +62,7 @@ export default function DepositPage() {
 	const [session, setSession] = useState<DepositCheckoutSession | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [continueLoading, setContinueLoading] = useState(false);
-	const [waitingForBalance, setWaitingForBalance] = useState(false);
+	const [creditState, setCreditState] = useState<CreditState>("waiting");
 
 	const onContinue = useCallback(async () => {
 		if (!selectedPkg) {
@@ -123,12 +124,12 @@ export default function DepositPage() {
 	}, [selectedPkg, balanceQuery.data]);
 
 	const onSuccess = useCallback(() => {
-		setWaitingForBalance(true);
+		setCreditState("waiting");
 		setStage("success");
 	}, []);
 
 	useEffect(() => {
-		if (!waitingForBalance) return;
+		if (stage !== "success" || creditState !== "waiting") return;
 		const start = Date.now();
 		const initial = initialBalanceRef.current ?? 0;
 
@@ -141,12 +142,12 @@ export default function DepositPage() {
 				queryClient.getQueryData(["wallet", "balance"]),
 			);
 			if (next !== null && next > initial) {
-				setWaitingForBalance(false);
+				setCreditState("credited");
 				setTimeout(() => router.push("/wallet"), 2_000);
 				return true;
 			}
 			if (Date.now() - start > POLL_TIMEOUT_MS) {
-				setWaitingForBalance(false);
+				setCreditState("pending");
 				return true;
 			}
 			return false;
@@ -164,12 +165,12 @@ export default function DepositPage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [waitingForBalance, queryClient, router]);
+	}, [stage, creditState, queryClient, router]);
 
 	if (stage === "success") {
 		return (
 			<SuccessView
-				waiting={waitingForBalance}
+				state={creditState}
 				balanceCents={balanceCents(balanceQuery.data)}
 			/>
 		);
@@ -269,36 +270,39 @@ export default function DepositPage() {
 }
 
 function SuccessView({
-	waiting,
+	state,
 	balanceCents,
 }: {
-	waiting: boolean;
+	state: CreditState;
 	balanceCents: number | null;
 }) {
+	const waiting = state === "waiting";
+	const credited = state === "credited";
+
 	return (
 		<div className="flex min-h-[60vh] flex-col items-start justify-center gap-6">
 			<div className="text-eyebrow text-[var(--color-spine)] flex items-center gap-3">
 				{waiting ? <Spinner size={12} /> : <span aria-hidden>●</span>}
-				{waiting ? "Crediting" : "Complete"}
+				{waiting ? "Crediting" : credited ? "Complete" : "Pending"}
 			</div>
 
 			<h1 className="text-display text-[var(--color-text)]">
-				{waiting ? (
-					<>
-						Funds
-						<br />
-						en route.
-					</>
-				) : (
+				{credited ? (
 					<>
 						Funds
 						<br />
 						added.
 					</>
+				) : (
+					<>
+						Funds
+						<br />
+						en route.
+					</>
 				)}
 			</h1>
 
-			{!waiting && balanceCents !== null ? (
+			{credited && balanceCents !== null ? (
 				<div>
 					<div className="text-eyebrow text-[var(--color-text-muted)]">
 						New balance
@@ -309,8 +313,9 @@ function SuccessView({
 				</div>
 			) : (
 				<p className="max-w-md text-[15px] text-[var(--color-text-muted)]">
-					Coinflow confirmed your payment. We&apos;re waiting for the wallet
-					credit to land — usually a few seconds.
+					{waiting
+						? "Coinflow confirmed your payment. We're waiting for the wallet credit to land."
+						: "ACH bank deposits can take longer to settle. Your balance updates once Coinflow sends the settlement webhook."}
 				</p>
 			)}
 

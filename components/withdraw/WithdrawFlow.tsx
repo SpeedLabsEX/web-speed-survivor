@@ -4,13 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
 	ArrowLeft,
 	Building2,
-	CheckCircle2,
 	CreditCard,
 	ExternalLink,
 	RefreshCw,
-	ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Alert } from "@/components/ui/Alert";
@@ -24,7 +23,6 @@ import {
 	paymentsFetch,
 	type ProviderAction,
 	type WithdrawalDestination,
-	type WithdrawalKycRequest,
 	type WithdrawalProfileResponse,
 	type WithdrawalQuoteResponse,
 	type WithdrawalResponse,
@@ -39,21 +37,8 @@ const SPEED_LABEL: Record<WithdrawalSpeed, string> = {
 	card: "Card",
 };
 
-const INITIAL_KYC: WithdrawalKycRequest = {
-	email: "",
-	firstName: "",
-	surName: "",
-	physicalAddress: "",
-	city: "",
-	state: "",
-	zip: "",
-	country: "US",
-	dob: "",
-	ssn: "",
-	redirectUrl: `${env.appUrl}/wallet/withdraw`,
-};
-
 export function WithdrawFlow() {
+	const router = useRouter();
 	const queryClient = useQueryClient();
 	const balanceQuery = useBalance({ pollMs: 15_000 });
 	// Only the withdrawable portion can be cashed out — referral credit is
@@ -65,9 +50,6 @@ export function WithdrawFlow() {
 	const [profile, setProfile] = useState<WithdrawalProfileResponse | null>(null);
 	const [profileLoading, setProfileLoading] = useState(true);
 	const [profileError, setProfileError] = useState<string | null>(null);
-	const [kyc, setKyc] = useState<WithdrawalKycRequest>(INITIAL_KYC);
-	const [kycLoading, setKycLoading] = useState(false);
-	const [kycSubmitted, setKycSubmitted] = useState(false);
 	const [destinationAction, setDestinationAction] = useState<ProviderAction | null>(null);
 	const [linkLoading, setLinkLoading] = useState(false);
 	const [selectedDestinationId, setSelectedDestinationId] = useState<string | null>(null);
@@ -75,7 +57,6 @@ export function WithdrawFlow() {
 	const [amount, setAmount] = useState("");
 	const [quote, setQuote] = useState<WithdrawalQuoteResponse | null>(null);
 	const [quoteLoading, setQuoteLoading] = useState(false);
-	const [withdrawal, setWithdrawal] = useState<WithdrawalResponse | null>(null);
 	const [withdrawalLoading, setWithdrawalLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -102,6 +83,33 @@ export function WithdrawFlow() {
 	useEffect(() => {
 		void loadProfile();
 	}, [loadProfile]);
+
+	useEffect(() => {
+		if (!destinationAction?.url) return;
+
+		let expectedOrigin: string;
+		try {
+			expectedOrigin = new URL(destinationAction.url).origin;
+		} catch {
+			return;
+		}
+
+		const handleMessage = (event: MessageEvent) => {
+			if (event.origin !== expectedOrigin) return;
+			const data = parseProviderMessage(event.data);
+			if (!data) return;
+			const eventName = data.data ?? data.method;
+			if (eventName !== "accountLinked") return;
+
+			setError(null);
+			setQuote(null);
+			setDestinationAction(null);
+			void loadProfile();
+		};
+
+		window.addEventListener("message", handleMessage);
+		return () => window.removeEventListener("message", handleMessage);
+	}, [destinationAction?.url, loadProfile]);
 
 	const selectedDestination = useMemo(() => {
 		return (
@@ -134,24 +142,6 @@ export function WithdrawFlow() {
 		(walletBalanceCents !== null && amountCents > walletBalanceCents) ||
 		quoteLoading;
 
-	const submitKyc = async () => {
-		setError(null);
-		setKycLoading(true);
-		try {
-			await paymentsFetch("withdrawals/kyc", {
-				method: "POST",
-				body: JSON.stringify(kyc),
-			});
-			setKycSubmitted(true);
-			setKyc(INITIAL_KYC);
-			await loadProfile();
-		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
-		} finally {
-			setKycLoading(false);
-		}
-	};
-
 	const startDestinationLink = async () => {
 		setError(null);
 		setLinkLoading(true);
@@ -175,7 +165,6 @@ export function WithdrawFlow() {
 	const createQuote = async () => {
 		if (!selectedDestination || !amountCents) return;
 		setError(null);
-		setWithdrawal(null);
 		setQuoteLoading(true);
 		try {
 			const nextQuote = await paymentsFetch<WithdrawalQuoteResponse>(
@@ -212,10 +201,14 @@ export function WithdrawFlow() {
 					coreTransferId: `web-withdrawal:${Date.now()}:${crypto.randomUUID()}`,
 				}),
 			});
-			setWithdrawal(result);
 			setQuote(null);
 			await queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
 			await queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+			const params = new URLSearchParams({
+				withdrawal: result.status,
+				amountCents: String(result.walletDebitAmountCents),
+			});
+			router.push(`/wallet?${params.toString()}`);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : String(err));
 		} finally {
@@ -249,15 +242,6 @@ export function WithdrawFlow() {
 				loading={balanceQuery.isLoading}
 			/>
 
-			<IdentitySection
-				kyc={kyc}
-				setKyc={setKyc}
-				status={profile?.kycStatus ?? "unknown"}
-				submitted={kycSubmitted}
-				loading={kycLoading}
-				onSubmit={submitKyc}
-			/>
-
 			<DestinationSection
 				profile={profile}
 				profileLoading={profileLoading}
@@ -267,7 +251,6 @@ export function WithdrawFlow() {
 				onSelectDestination={(destination) => {
 					setSelectedDestinationId(destination.providerPaymentMethodId);
 					setQuote(null);
-					setWithdrawal(null);
 				}}
 				onLink={startDestinationLink}
 				onRefresh={loadProfile}
@@ -278,7 +261,6 @@ export function WithdrawFlow() {
 				setAmount={(value) => {
 					setAmount(value);
 					setQuote(null);
-					setWithdrawal(null);
 				}}
 				amountCents={amountCents}
 				balanceCents={walletBalanceCents}
@@ -292,7 +274,6 @@ export function WithdrawFlow() {
 				quote={quote}
 				quoteLoading={quoteLoading}
 				quoteDisabled={quoteDisabled}
-				withdrawal={withdrawal}
 				withdrawalLoading={withdrawalLoading}
 				onCreateQuote={createQuote}
 				onCreateWithdrawal={createWithdrawal}
@@ -337,137 +318,6 @@ function BalanceStrip({
 	);
 }
 
-function IdentitySection({
-	kyc,
-	setKyc,
-	status,
-	submitted,
-	loading,
-	onSubmit,
-}: {
-	kyc: WithdrawalKycRequest;
-	setKyc: (value: WithdrawalKycRequest) => void;
-	status: WithdrawalProfileResponse["kycStatus"];
-	submitted: boolean;
-	loading: boolean;
-	onSubmit: () => void;
-}) {
-	const complete = status === "verified" || status === "pending" || status === "created" || submitted;
-
-	return (
-		<section className="flex flex-col gap-4">
-			<SectionHeader
-				icon={<ShieldCheck size={18} />}
-				label="Identity"
-				title={complete ? `Status: ${statusLabel(status, submitted)}` : "Verify identity"}
-			/>
-
-			{complete ? (
-				<Panel className="flex items-center gap-3 p-5">
-					<CheckCircle2 size={18} className="text-[var(--color-spine)]" />
-					<div>
-						<div className="text-[15px] font-semibold text-[var(--color-text)]">
-							Identity details received
-						</div>
-						<div className="mt-1 text-sm text-[var(--color-text-muted)]">
-							Status: {statusLabel(status, submitted)}
-						</div>
-					</div>
-				</Panel>
-			) : (
-				<Panel className="p-5">
-					<div className="grid gap-3 sm:grid-cols-2">
-						<Field label="First name">
-							<Input
-								value={kyc.firstName}
-								autoComplete="given-name"
-								onChange={(event) => setKyc({ ...kyc, firstName: event.target.value })}
-							/>
-						</Field>
-						<Field label="Last name">
-							<Input
-								value={kyc.surName}
-								autoComplete="family-name"
-								onChange={(event) => setKyc({ ...kyc, surName: event.target.value })}
-							/>
-						</Field>
-						<Field label="Email">
-							<Input
-								type="email"
-								value={kyc.email ?? ""}
-								autoComplete="email"
-								onChange={(event) => setKyc({ ...kyc, email: event.target.value })}
-							/>
-						</Field>
-						<Field label="Date of birth">
-							<Input
-								type="date"
-								value={kyc.dob}
-								autoComplete="bday"
-								onChange={(event) => setKyc({ ...kyc, dob: event.target.value })}
-							/>
-						</Field>
-						<Field label="Address">
-							<Input
-								value={kyc.physicalAddress}
-								autoComplete="street-address"
-								onChange={(event) =>
-									setKyc({ ...kyc, physicalAddress: event.target.value })
-								}
-							/>
-						</Field>
-						<Field label="City">
-							<Input
-								value={kyc.city}
-								autoComplete="address-level2"
-								onChange={(event) => setKyc({ ...kyc, city: event.target.value })}
-							/>
-						</Field>
-						<Field label="State">
-							<Input
-								value={kyc.state}
-								autoComplete="address-level1"
-								maxLength={16}
-								onChange={(event) =>
-									setKyc({ ...kyc, state: event.target.value.toUpperCase() })
-								}
-							/>
-						</Field>
-						<Field label="ZIP">
-							<Input
-								value={kyc.zip}
-								autoComplete="postal-code"
-								onChange={(event) => setKyc({ ...kyc, zip: event.target.value })}
-							/>
-						</Field>
-						<Field label="Last 4 digits of SSN">
-							<Input
-								value={kyc.ssn}
-								inputMode="numeric"
-								autoComplete="off"
-								maxLength={32}
-								onChange={(event) => setKyc({ ...kyc, ssn: event.target.value })}
-							/>
-						</Field>
-					</div>
-					<div className="mt-5 flex justify-end">
-						<Button
-							type="button"
-							variant="primary"
-							size="lg"
-							loading={loading}
-							disabled={loading || !kycFormComplete(kyc)}
-							onClick={onSubmit}
-						>
-							Submit identity
-						</Button>
-					</div>
-				</Panel>
-			)}
-		</section>
-	);
-}
-
 function DestinationSection({
 	profile,
 	profileLoading,
@@ -494,7 +344,7 @@ function DestinationSection({
 			<SectionHeader
 				icon={<Building2 size={18} />}
 				label="Destination"
-				title={destinations.length > 0 ? "Choose account" : "Link account"}
+				title={destinations.length > 0 ? "Choose account" : "Verify and connect"}
 			/>
 
 			<div className="flex flex-col gap-3">
@@ -522,7 +372,7 @@ function DestinationSection({
 								No payout destination yet
 							</div>
 							<div className="mt-1 text-sm text-[var(--color-text-muted)]">
-								Link a bank account or debit card to continue.
+								Continue through Coinflow to verify identity and add a bank account or debit card.
 							</div>
 						</div>
 						<div className="flex flex-col gap-3 sm:flex-row">
@@ -534,7 +384,7 @@ function DestinationSection({
 								onClick={onLink}
 							>
 								<ExternalLink size={18} aria-hidden />
-								Link destination
+								Verify and connect
 							</Button>
 							<Button type="button" variant="ghost" size="lg" onClick={onRefresh}>
 								<RefreshCw size={18} aria-hidden />
@@ -587,7 +437,6 @@ function AmountSection({
 	quote,
 	quoteLoading,
 	quoteDisabled,
-	withdrawal,
 	withdrawalLoading,
 	onCreateQuote,
 	onCreateWithdrawal,
@@ -603,7 +452,6 @@ function AmountSection({
 	quote: WithdrawalQuoteResponse | null;
 	quoteLoading: boolean;
 	quoteDisabled: boolean;
-	withdrawal: WithdrawalResponse | null;
 	withdrawalLoading: boolean;
 	onCreateQuote: () => void;
 	onCreateWithdrawal: () => void;
@@ -689,8 +537,6 @@ function AmountSection({
 					onCreateWithdrawal={onCreateWithdrawal}
 				/>
 			) : null}
-
-			{withdrawal ? <WithdrawalResult result={withdrawal} /> : null}
 		</section>
 	);
 }
@@ -727,19 +573,6 @@ function QuotePanel({
 				</Button>
 			</div>
 		</Panel>
-	);
-}
-
-function WithdrawalResult({ result }: { result: WithdrawalResponse }) {
-	const failed = result.status === "failed" || result.status === "canceled";
-	return (
-		<Alert tone={failed ? "error" : "success"}>
-			{failed
-				? result.failure?.message ?? "Withdrawal failed. Funds are available again."
-				: `Withdrawal ${result.status}. ${formatBalance(
-						result.walletDebitAmountCents,
-					)} is reflected in your wallet.`}
-		</Alert>
 	);
 }
 
@@ -846,24 +679,19 @@ function dollarsToCents(value: string): number | null {
 	return Math.round(parsed * 100);
 }
 
-function kycFormComplete(kyc: WithdrawalKycRequest): boolean {
-	return [
-		kyc.firstName,
-		kyc.surName,
-		kyc.physicalAddress,
-		kyc.city,
-		kyc.state,
-		kyc.zip,
-		kyc.country,
-		kyc.dob,
-		kyc.ssn,
-	].every((value) => value.trim().length > 0);
-}
-
-function statusLabel(status: WithdrawalProfileResponse["kycStatus"], submitted: boolean): string {
-	if (submitted && status === "unknown") return "submitted";
-	if (status === "kyc_required") return "required";
-	return status.replace(/_/g, " ");
+function parseProviderMessage(data: unknown): { data?: unknown; method?: unknown } | null {
+	if (typeof data === "string") {
+		try {
+			const parsed = JSON.parse(data) as unknown;
+			return parseProviderMessage(parsed);
+		} catch {
+			return null;
+		}
+	}
+	if (!data || typeof data !== "object" || Array.isArray(data)) {
+		return null;
+	}
+	return data as { data?: unknown; method?: unknown };
 }
 
 function speedsLabel(destination: WithdrawalDestination): string {
