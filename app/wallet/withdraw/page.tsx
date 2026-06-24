@@ -37,7 +37,7 @@ function ComingSoon() {
 				</h1>
 				<p className="mt-6 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)]">
 					Cash out via instant push-to-card, Same-Day ACH, or Standard ACH.
-					KYC verification, bank linking, and the API plumbing are in flight.
+					This build has withdrawals disabled.
 				</p>
 			</header>
 

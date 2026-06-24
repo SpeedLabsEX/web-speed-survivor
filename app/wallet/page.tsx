@@ -1,26 +1,36 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
 import { ActivityItem, type WalletTransactionRow } from "@/components/ActivityItem";
 import { BalanceCard } from "@/components/BalanceCard";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { env } from "@/lib/env";
+import { formatBalance } from "@/lib/format";
 import {
 	balanceCents,
 	creditCents,
-	withdrawableCents,
 	useBalance,
 	useTransactions,
+	withdrawableCents,
 } from "@/lib/wallet-hooks";
 
-export default function WalletPage() {
+function WalletView() {
+	const params = useSearchParams();
 	const balanceQuery = useBalance({ pollMs: 15_000 });
 	const txQuery = useTransactions({ limit: 20, pollMs: 30_000 });
 
 	const cents = balanceCents(balanceQuery.data);
 	const credit = creditCents(balanceQuery.data);
 	const withdrawable = withdrawableCents(balanceQuery.data);
-	const txList = (txQuery.data?.transactions ?? []) as WalletTransactionRow[];
+	const txList = (txQuery.data?.transactions ?? txQuery.data?.data ?? []) as WalletTransactionRow[];
+	const withdrawalStatus = params.get("withdrawal");
+	const withdrawalAmountCents = parseOptionalCents(params.get("amountCents"));
+	const withdrawalNotice = withdrawalStatus
+		? withdrawalNoticeFor(withdrawalStatus, withdrawalAmountCents)
+		: null;
 
 	return (
 		<div className="flex flex-col gap-12">
@@ -31,6 +41,12 @@ export default function WalletPage() {
 				loading={balanceQuery.isLoading}
 				withdrawalsEnabled={env.features.withdrawals}
 			/>
+
+			{withdrawalNotice ? (
+				<Alert tone={withdrawalNotice.tone}>
+					{withdrawalNotice.message}
+				</Alert>
+			) : null}
 
 			{balanceQuery.isError ? (
 				<Alert tone="error">
@@ -68,6 +84,20 @@ export default function WalletPage() {
 	);
 }
 
+export default function WalletPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex min-h-[40vh] items-center justify-center">
+					<Spinner size={28} />
+				</div>
+			}
+		>
+			<WalletView />
+		</Suspense>
+	);
+}
+
 function EmptyActivity() {
 	return (
 		<div className="px-6 py-16 text-center">
@@ -79,4 +109,33 @@ function EmptyActivity() {
 			</p>
 		</div>
 	);
+}
+
+function parseOptionalCents(value: string | null): number | null {
+	if (!value) return null;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function withdrawalNoticeFor(
+	status: string,
+	amountCents: number | null,
+): { tone: "success" | "error" | "info"; message: string } {
+	const amount = amountCents === null ? "Your withdrawal" : `${formatBalance(amountCents)} withdrawal`;
+	if (status === "failed" || status === "canceled" || status === "expired") {
+		return {
+			tone: "error",
+			message: `${amount} could not be started. Funds are still available in your wallet.`,
+		};
+	}
+	if (status === "unknown") {
+		return {
+			tone: "info",
+			message: `${amount} is being checked. Recent activity will update when the provider confirms the status.`,
+		};
+	}
+	return {
+		tone: "success",
+		message: `${amount} submitted. Funds are reserved now and the status appears in Recent activity.`,
+	};
 }

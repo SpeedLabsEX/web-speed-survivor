@@ -75,13 +75,27 @@ export interface AttachReferralResponse {
 export interface WalletTransaction {
 	type: "deposit" | "withdrawal" | string;
 	amount: number | string;
+	source?: string | null;
+	reference_id?: string | null;
 	description?: string | null;
 	created_at: string;
+	status?: string | null;
+	provider?: string | null;
+	provider_payout_amount_cents?: number | null;
+	provider_fee_amount_cents?: number | null;
+	metadata?: Record<string, unknown> | null;
 	[key: string]: unknown;
 }
 
 export interface WalletTransactionList {
-	transactions: WalletTransaction[];
+	transactions?: WalletTransaction[];
+	data?: WalletTransaction[];
+	pagination?: {
+		total_count?: number;
+		page?: number;
+		limit?: number;
+		has_more?: boolean;
+	};
 	limit?: number;
 	offset?: number;
 	total?: number;
