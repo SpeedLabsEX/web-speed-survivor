@@ -18,7 +18,7 @@ function isAllowed(path: string): boolean {
 async function createPaymentsBearerToken(sessionToken: string): Promise<string> {
 	const secret = serverEnv.appJwtSharedSecret;
 	if (!secret) {
-		return sessionToken;
+		throw new Error("Payments auth is not configured");
 	}
 
 	const me = await callApi<MeResponse>("/api/v1/me", { token: sessionToken });

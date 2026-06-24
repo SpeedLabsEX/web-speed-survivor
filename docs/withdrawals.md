@@ -110,14 +110,13 @@ The web app now talks to `api-payments` through `/api/payments/*` for
 payment orchestration and keeps `api-speed-survivor` for auth, balance, and
 transaction-history reads.
 
-- `app/api/payments/[...path]/route.ts` forwards the httpOnly app JWT to
-  `api-payments`.
+- `app/api/payments/[...path]/route.ts` validates the httpOnly app JWT with
+  `api-speed-survivor`, then mints a short-lived JWT for `api-payments`.
 - `app/wallet/deposit/page.tsx` and `app/wallet/deposit/hosted/page.tsx`
   create provider-agnostic deposit sessions through `api-payments`.
 - `app/wallet/withdraw/page.tsx` renders the withdrawal flow.
-- `components/withdraw/WithdrawFlow.tsx` handles KYC submission, Coinflow
-  bank/card linking, destination selection, quote preview, and withdrawal
-  creation.
+- `components/withdraw/WithdrawFlow.tsx` handles Coinflow bank/card linking,
+  destination selection, quote preview, and withdrawal creation.
 
 The feature flag `NEXT_PUBLIC_FEATURE_WITHDRAWALS` gates the
 `/wallet/withdraw` page. Keep it enabled locally and flip production once the

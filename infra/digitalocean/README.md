@@ -67,7 +67,7 @@ service:
 | Variable | Purpose |
 |---|---|
 | `PAYMENTS_API_BASE_URL` | Base URL for `api-payments`, used by `/api/payments/*` route handlers. Defaults to `https://payments-api-zqlo6.ondigitalocean.app` in `.env.production`; override only if the hosted payments API URL changes. |
-| `APP_JWT_SHARED_SECRET` | Optional. If set, route handlers can verify the api-speed-survivor JWT locally instead of calling `/api/v1/me`. Currently unused — leave blank. |
+| `APP_JWT_SHARED_SECRET` | Required by `/api/payments/*`. Set this to the exact same value as `APP_JWT_SECRET` on the hosted `api-payments` service so the web app can mint short-lived payments JWTs after validating the user's Speed API session. |
 
 If you change anything in `.env.production`, you must rebuild and redeploy
 (those values are baked at build time, not read at runtime).
