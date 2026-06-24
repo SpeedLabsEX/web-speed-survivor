@@ -49,8 +49,27 @@ export interface MeResponse {
 
 export interface WalletBalance {
 	balance: number | string;
+	// Portion eligible for cash-out (excludes referral credit). Optional for
+	// backward-compat with older API responses.
+	withdrawable_balance?: number | string;
+	// Remaining non-withdrawable referral credit.
+	credit_balance?: number | string;
 	currency?: string;
 	[key: string]: unknown;
+}
+
+export interface ReferralSummary {
+	code: string;
+	share_link: string;
+	referred_count: number;
+	rewarded_count: number;
+	credits_earned: number | string;
+}
+
+export interface AttachReferralResponse {
+	success: boolean;
+	status: string;
+	message: string;
 }
 
 export interface WalletTransaction {

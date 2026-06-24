@@ -30,7 +30,7 @@ import {
 	type WithdrawalResponse,
 	type WithdrawalSpeed,
 } from "@/lib/payments-api";
-import { balanceCents, useBalance } from "@/lib/wallet-hooks";
+import { creditCents, useBalance, withdrawableCents } from "@/lib/wallet-hooks";
 import { cn } from "@/lib/cn";
 
 const SPEED_LABEL: Record<WithdrawalSpeed, string> = {
@@ -56,7 +56,11 @@ const INITIAL_KYC: WithdrawalKycRequest = {
 export function WithdrawFlow() {
 	const queryClient = useQueryClient();
 	const balanceQuery = useBalance({ pollMs: 15_000 });
-	const walletBalanceCents = balanceCents(balanceQuery.data);
+	// Only the withdrawable portion can be cashed out — referral credit is
+	// spendable on contests but never withdrawable. The cap and validation use
+	// withdrawable; api-payments enforces the same server-side.
+	const walletBalanceCents = withdrawableCents(balanceQuery.data);
+	const creditBalanceCents = creditCents(balanceQuery.data);
 
 	const [profile, setProfile] = useState<WithdrawalProfileResponse | null>(null);
 	const [profileLoading, setProfileLoading] = useState(true);
@@ -241,6 +245,7 @@ export function WithdrawFlow() {
 
 			<BalanceStrip
 				balanceCents={walletBalanceCents}
+				creditCents={creditBalanceCents}
 				loading={balanceQuery.isLoading}
 			/>
 
@@ -298,16 +303,19 @@ export function WithdrawFlow() {
 
 function BalanceStrip({
 	balanceCents,
+	creditCents,
 	loading,
 }: {
 	balanceCents: number | null;
+	creditCents?: number | null;
 	loading: boolean;
 }) {
+	const hasCredit = (creditCents ?? 0) > 0;
 	return (
 		<Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end sm:justify-between">
 			<div>
 				<div className="text-eyebrow text-[var(--color-text-muted)]">
-					Available
+					Available to withdraw
 				</div>
 				<div className="mt-2 text-[32px] font-extrabold tabular text-[var(--color-text)]">
 					{loading && balanceCents === null ? (
@@ -316,6 +324,11 @@ function BalanceStrip({
 						formatBalance(balanceCents ?? 0)
 					)}
 				</div>
+				{hasCredit ? (
+					<div className="mt-1 text-sm text-[var(--color-text-muted)]">
+						{formatBalance(creditCents ?? 0)} in credit can&apos;t be withdrawn.
+					</div>
+				) : null}
 			</div>
 			<div className="text-sm text-[var(--color-text-muted)]">
 				Withdrawals update your balance as soon as funds are reserved.

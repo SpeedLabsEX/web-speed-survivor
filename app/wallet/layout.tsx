@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { CompactHeader } from "@/components/CompactHeader";
+import { ReferralAttacher } from "@/components/ReferralAttacher";
 import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/lib/auth-context";
 import { balanceCents, useBalance } from "@/lib/wallet-hooks";
@@ -29,6 +30,7 @@ export default function WalletLayout({ children }: { children: ReactNode }) {
 
 	return (
 		<div className="min-h-screen">
+			<ReferralAttacher />
 			<CompactHeader balanceCents={balanceCents(balance)} />
 			<div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
 				{children}

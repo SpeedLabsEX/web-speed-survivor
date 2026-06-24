@@ -12,7 +12,7 @@ import { readSessionToken, clearSessionCookie } from "@/lib/session";
  * paths to avoid turning this into an open relay.
  */
 
-const ALLOWED_PREFIXES = ["api/v1/wallet/", "api/v1/me"];
+const ALLOWED_PREFIXES = ["api/v1/wallet/", "api/v1/me", "api/v1/referrals/"];
 
 function isAllowed(path: string): boolean {
 	return ALLOWED_PREFIXES.some((p) => path === p || path.startsWith(p));

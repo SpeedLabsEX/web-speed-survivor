@@ -5,19 +5,29 @@ import { BalanceCard } from "@/components/BalanceCard";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { env } from "@/lib/env";
-import { balanceCents, useBalance, useTransactions } from "@/lib/wallet-hooks";
+import {
+	balanceCents,
+	creditCents,
+	withdrawableCents,
+	useBalance,
+	useTransactions,
+} from "@/lib/wallet-hooks";
 
 export default function WalletPage() {
 	const balanceQuery = useBalance({ pollMs: 15_000 });
 	const txQuery = useTransactions({ limit: 20, pollMs: 30_000 });
 
 	const cents = balanceCents(balanceQuery.data);
+	const credit = creditCents(balanceQuery.data);
+	const withdrawable = withdrawableCents(balanceQuery.data);
 	const txList = (txQuery.data?.transactions ?? []) as WalletTransactionRow[];
 
 	return (
 		<div className="flex flex-col gap-12">
 			<BalanceCard
 				balanceCents={cents}
+				creditCents={credit}
+				withdrawableCents={withdrawable}
 				loading={balanceQuery.isLoading}
 				withdrawalsEnabled={env.features.withdrawals}
 			/>

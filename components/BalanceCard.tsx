@@ -10,6 +10,8 @@ import { formatBalance } from "@/lib/format";
 
 interface BalanceCardProps {
 	balanceCents: number | null;
+	creditCents?: number | null;
+	withdrawableCents?: number | null;
 	loading?: boolean;
 	withdrawalsEnabled?: boolean;
 	className?: string;
@@ -21,10 +23,13 @@ interface BalanceCardProps {
  */
 export function BalanceCard({
 	balanceCents,
+	creditCents,
+	withdrawableCents,
 	loading,
 	withdrawalsEnabled = false,
 	className,
 }: BalanceCardProps) {
+	const hasCredit = (creditCents ?? 0) > 0;
 	return (
 		<section
 			className={cn(
@@ -46,7 +51,23 @@ export function BalanceCard({
 						{formatBalance(balanceCents ?? 0)}
 					</div>
 				)}
+				{hasCredit ? (
+					<div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+						<span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-soft,rgba(0,229,155,0.12))] px-2.5 py-1 font-semibold text-[var(--color-accent,#00e59b)]">
+							{formatBalance(creditCents ?? 0)} credit
+						</span>
+						<span className="text-[var(--color-text-muted)]">
+							{formatBalance(withdrawableCents ?? balanceCents ?? 0)} withdrawable
+						</span>
+					</div>
+				) : null}
 			</div>
+
+			{hasCredit ? (
+				<p className="-mt-4 mb-6 text-[12px] text-[var(--color-text-muted)]">
+					Credit can be used to play but can&apos;t be withdrawn.
+				</p>
+			) : null}
 
 			<div className="h-px w-full bg-[var(--color-hairline)]" />
 

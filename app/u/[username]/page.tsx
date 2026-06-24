@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ReferralCapture } from "@/components/ReferralCapture";
 import { Wordmark } from "@/components/Wordmark";
 import { Panel } from "@/components/ui/Card";
 import { ApiError, callApi } from "@/lib/apiClient";
@@ -79,6 +80,7 @@ export default async function PublicProfilePage({
 
 	return (
 		<main className="relative flex min-h-screen flex-col">
+			<ReferralCapture />
 			<header className="border-b border-[var(--color-hairline)]">
 				<div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4 sm:px-6">
 					<Link href="/">
