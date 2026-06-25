@@ -33,7 +33,8 @@ function WalletView() {
 	const cents = balanceCents(balanceQuery.data);
 	const credit = creditCents(balanceQuery.data);
 	const withdrawable = withdrawableCents(balanceQuery.data);
-	const txList = (txQuery.data?.transactions ?? txQuery.data?.data ?? []) as WalletTransactionRow[];
+	const txList = ((txQuery.data?.transactions ?? txQuery.data?.data ?? []) as WalletTransactionRow[])
+		.filter(isVisibleWalletActivity);
 	const withdrawalStatus = params.get("withdrawal");
 	const withdrawalAmountCents = parseOptionalCents(params.get("amountCents"));
 	const withdrawalNotice = withdrawalStatus
@@ -157,6 +158,11 @@ function EmptyActivity() {
 			</p>
 		</div>
 	);
+}
+
+function isVisibleWalletActivity(txn: WalletTransactionRow): boolean {
+	const status = (txn.status ?? "").toLowerCase();
+	return !(txn.type === "deposit" && status === "action_required");
 }
 
 function parseOptionalCents(value: string | null): number | null {
