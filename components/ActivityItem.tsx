@@ -11,13 +11,16 @@ export interface WalletTransactionRow {
 	source?: string | null;
 	provider?: string | null;
 	description?: string | null;
-	created_at: string;
+	created_at?: string | null;
+	createdAt?: string | null;
+	timestamp?: string | null;
 	status?: string | null;
 	metadata?: Record<string, unknown> | null;
 }
 
 interface ActivityItemProps {
 	txn: WalletTransactionRow;
+	nowMs?: number;
 }
 
 /**
@@ -25,13 +28,14 @@ interface ActivityItemProps {
  * relative time → signed amount right-aligned with tabular numerals.
  * Credit = spine, debit = risk, with both color and a sign.
  */
-export function ActivityItem({ txn }: ActivityItemProps) {
+export function ActivityItem({ txn, nowMs }: ActivityItemProps) {
 	const isCredit = txn.type === "deposit";
 	const sign = isCredit ? "+" : txn.type === "withdrawal" ? "−" : "";
 	const amount = formatBalance(txn.amount);
 	const status = normalizeStatus(txn.status, txn.type);
 	const title = txn.description ?? titleFor(txn.type, status, txn.source);
 	const source = labelFor(txn.provider ?? txn.source);
+	const createdAt = walletTransactionTimestamp(txn);
 
 	return (
 		<div className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-4 last:border-b-0">
@@ -53,7 +57,7 @@ export function ActivityItem({ txn }: ActivityItemProps) {
 				</div>
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
 					<span className="text-eyebrow text-[10px] tracking-[0.16em]">
-						{formatRelativeTime(txn.created_at)}
+						{formatRelativeTime(createdAt, nowMs)}
 					</span>
 					{source ? (
 						<span className="text-eyebrow text-[10px] tracking-[0.16em] text-[var(--color-text-dim)]">
@@ -75,6 +79,10 @@ export function ActivityItem({ txn }: ActivityItemProps) {
 			</div>
 		</div>
 	);
+}
+
+export function walletTransactionTimestamp(txn: WalletTransactionRow): string | null {
+	return txn.created_at ?? txn.createdAt ?? txn.timestamp ?? null;
 }
 
 function normalizeStatus(status: string | null | undefined, type: string): string {

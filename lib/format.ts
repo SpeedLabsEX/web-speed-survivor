@@ -17,12 +17,14 @@ export function formatBalance(amount: number | string | null | undefined): strin
 	return USD.format(n / 100);
 }
 
-/** Render a relative timestamp ("2m ago", "3h ago", …). Falls back to a short date. */
-export function formatRelativeTime(iso: string | null | undefined): string {
-	if (!iso) return "";
-	const then = new Date(iso).getTime();
+/** Render a relative timestamp ("2m ago", "3h ago", ...). Falls back to a short date. */
+export function formatRelativeTime(
+	iso: string | null | undefined,
+	nowMs = Date.now(),
+): string {
+	const then = parseTimestampMs(iso);
 	if (!Number.isFinite(then)) return "";
-	const diffMs = Date.now() - then;
+	const diffMs = nowMs - then;
 	const diffSec = Math.max(0, Math.floor(diffMs / 1000));
 	if (diffSec < 60) return "just now";
 	const diffMin = Math.floor(diffSec / 60);
@@ -35,4 +37,15 @@ export function formatRelativeTime(iso: string | null | undefined): string {
 		month: "short",
 		day: "numeric",
 	});
+}
+
+export function parseTimestampMs(value: string | null | undefined): number {
+	if (!value) return Number.NaN;
+	const trimmed = value.trim();
+	if (!trimmed) return Number.NaN;
+
+	const looksLikeIsoWithTime = /^\d{4}-\d{2}-\d{2}T/.test(trimmed);
+	const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(trimmed);
+	const normalized = looksLikeIsoWithTime && !hasTimezone ? `${trimmed}Z` : trimmed;
+	return new Date(normalized).getTime();
 }

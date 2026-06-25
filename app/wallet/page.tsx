@@ -2,9 +2,13 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-import { ActivityItem, type WalletTransactionRow } from "@/components/ActivityItem";
+import {
+	ActivityItem,
+	type WalletTransactionRow,
+	walletTransactionTimestamp,
+} from "@/components/ActivityItem";
 import { BalanceCard } from "@/components/BalanceCard";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
@@ -22,6 +26,7 @@ import {
 function WalletView() {
 	const params = useSearchParams();
 	const queryClient = useQueryClient();
+	const activityNowMs = useNow(30_000);
 	const balanceQuery = useBalance({ pollMs: 15_000 });
 	const txQuery = useTransactions({ limit: 20, pollMs: 30_000 });
 
@@ -100,7 +105,11 @@ function WalletView() {
 					) : (
 						<div>
 							{txList.map((txn, idx) => (
-								<ActivityItem key={`${txn.created_at}-${idx}`} txn={txn} />
+								<ActivityItem
+									key={`${walletTransactionTimestamp(txn) ?? "txn"}-${idx}`}
+									txn={txn}
+									nowMs={activityNowMs}
+								/>
 							))}
 						</div>
 					)}
@@ -108,6 +117,19 @@ function WalletView() {
 			</section>
 		</div>
 	);
+}
+
+function useNow(intervalMs: number): number {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		const timer = window.setInterval(() => {
+			setNow(Date.now());
+		}, intervalMs);
+		return () => window.clearInterval(timer);
+	}, [intervalMs]);
+
+	return now;
 }
 
 export default function WalletPage() {
