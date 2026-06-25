@@ -1,7 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 
 import { ActivityItem, type WalletTransactionRow } from "@/components/ActivityItem";
 import { BalanceCard } from "@/components/BalanceCard";
@@ -9,6 +10,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { env } from "@/lib/env";
 import { formatBalance } from "@/lib/format";
+import { paymentsFetch, type PaymentReconciliationResponse } from "@/lib/payments-api";
 import {
 	balanceCents,
 	creditCents,
@@ -19,6 +21,7 @@ import {
 
 function WalletView() {
 	const params = useSearchParams();
+	const queryClient = useQueryClient();
 	const balanceQuery = useBalance({ pollMs: 15_000 });
 	const txQuery = useTransactions({ limit: 20, pollMs: 30_000 });
 
@@ -31,6 +34,29 @@ function WalletView() {
 	const withdrawalNotice = withdrawalStatus
 		? withdrawalNoticeFor(withdrawalStatus, withdrawalAmountCents)
 		: null;
+
+	useEffect(() => {
+		let cancelled = false;
+		void paymentsFetch<PaymentReconciliationResponse>("reconciliation", {
+			method: "POST",
+		})
+			.then((result) => {
+				if (
+					cancelled ||
+					(result.processed === 0 && result.staleWithdrawalsFailed === 0)
+				) {
+					return;
+				}
+				void queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
+				void queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
+			})
+			.catch(() => {
+				// Best-effort freshness pass; normal wallet polling still runs.
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [queryClient]);
 
 	return (
 		<div className="flex flex-col gap-12">

@@ -119,6 +119,17 @@ export interface WithdrawalResponse {
 	} | null;
 }
 
+export interface PaymentReconciliationResponse {
+	success: boolean;
+	checked: number;
+	processed: number;
+	ignored: number;
+	duplicates: number;
+	errors: number;
+	staleWithdrawalsFailed: number;
+	providers: Record<string, Record<string, number>>;
+}
+
 export async function paymentsFetch<T>(
 	path: string,
 	init: RequestInit = {},

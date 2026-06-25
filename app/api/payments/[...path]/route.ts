@@ -6,7 +6,7 @@ import type { MeResponse } from "@/lib/api-types";
 import { serverEnv } from "@/lib/env";
 import { clearSessionCookie, readSessionToken } from "@/lib/session";
 
-const ALLOWED_PREFIXES = ["sessions", "withdrawals"];
+const ALLOWED_PREFIXES = ["sessions", "withdrawals", "reconciliation"];
 const PAYMENTS_JWT_ISSUER = "speed-labs-api";
 const PAYMENTS_JWT_AUDIENCE = "speed-mobile-app";
 const PAYMENTS_JWT_VERSION = 2;
