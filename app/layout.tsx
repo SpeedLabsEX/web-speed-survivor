@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
 import { GlowBackdrop } from "@/components/GlowBackdrop";
+import { env } from "@/lib/env";
 
 import { Providers } from "./providers";
 
@@ -25,6 +26,9 @@ const spaceGrotesk = localFont({
 });
 
 export const metadata: Metadata = {
+	// Ensures relative Open Graph / Twitter image URLs (e.g. the shared-win
+	// thumbnail at /api/og/win/...) resolve to absolute URLs for crawlers.
+	metadataBase: new URL(env.appUrl),
 	title: "Speed Survivor — Wallet",
 	description:
 		"Manage your Speed Survivor wallet. Deposit and withdraw funds, view your transaction history.",

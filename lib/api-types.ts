@@ -147,3 +147,22 @@ export interface PublicProfileResponse {
 	stats: PublicProfileStats;
 	recent_activity: PublicRecentActivityItem[];
 }
+
+/**
+ * A single shareable contest result ("win") — mirrors PublicWinResponse in
+ * api-speed-survivor/modules/public_profiles/dtos/public_profile.py
+ * (GET /api/v1/public/profiles/{username}/results/{contest_uuid}).
+ */
+export interface PublicWinResponse {
+	username: string | null;
+	avatar_image_url: string | null;
+	contest_uuid: string;
+	contest_name: string;
+	contest_date: string | null;
+	final_placement: number;
+	total_players: number;
+	prize_amount: number;
+	entry_fee: number;
+	pnl: number;
+	is_winner: boolean;
+}

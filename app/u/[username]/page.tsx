@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { Wordmark } from "@/components/Wordmark";
+import { WinCardModal } from "@/components/WinCardModal";
 import { Panel } from "@/components/ui/Card";
 import { ApiError, callApi } from "@/lib/apiClient";
 import type { PublicProfileResponse } from "@/lib/api-types";
+import { env } from "@/lib/env";
+import { fetchWin, winHeadline } from "@/lib/win";
 
 // Public, shareable profile page. Fetched server-side with no auth token so it
 // works for logged-out visitors and link-preview crawlers.
@@ -29,10 +32,35 @@ function money(n: number): string {
 
 export async function generateMetadata({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ username: string }>;
+	searchParams: Promise<{ win?: string }>;
 }): Promise<Metadata> {
 	const { username } = await params;
+	const { win: winContestUuid } = await searchParams;
+
+	// Shared-win link: fetch the specific result and build a rich preview with
+	// a server-generated card thumbnail.
+	if (winContestUuid) {
+		const win = await fetchWin(username, winContestUuid);
+		if (win) {
+			const title = `@${win.username} · Speed Survivor`;
+			const description = winHeadline(win);
+			const image = `/api/og/win/${encodeURIComponent(username)}/${encodeURIComponent(winContestUuid)}`;
+			return {
+				title,
+				description,
+				openGraph: {
+					title,
+					description,
+					images: [{ url: image, width: 1200, height: 630 }],
+				},
+				twitter: { card: "summary_large_image", title, description, images: [image] },
+			};
+		}
+	}
+
 	const profile = await fetchProfile(username);
 	if (!profile) {
 		return { title: "Profile not found · Speed Survivor" };
@@ -55,12 +83,17 @@ export async function generateMetadata({
 
 export default async function PublicProfilePage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ username: string }>;
+	searchParams: Promise<{ win?: string }>;
 }) {
 	const { username } = await params;
+	const { win: winContestUuid } = await searchParams;
 	const profile = await fetchProfile(username);
 	if (!profile) notFound();
+
+	const win = winContestUuid ? await fetchWin(username, winContestUuid) : null;
 
 	const s = profile.stats;
 	const links = profile.social_links;
@@ -81,6 +114,13 @@ export default async function PublicProfilePage({
 	return (
 		<main className="relative flex min-h-screen flex-col">
 			<ReferralCapture />
+			{win ? (
+				<WinCardModal
+					win={win}
+					appStoreUrl={env.stores.appStoreUrl}
+					playStoreUrl={env.stores.playStoreUrl}
+				/>
+			) : null}
 			<header className="border-b border-[var(--color-hairline)]">
 				<div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4 sm:px-6">
 					<Link href="/">

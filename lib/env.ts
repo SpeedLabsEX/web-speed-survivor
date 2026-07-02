@@ -69,6 +69,12 @@ export const env = {
 		enable1CentTest: process.env.NEXT_PUBLIC_ENABLE_TEST_1_CENT === "true",
 		withdrawals: process.env.NEXT_PUBLIC_FEATURE_WITHDRAWALS === "true",
 	},
+	// Mobile app store links for download CTAs (e.g. shared-win pages). Empty
+	// until the app ships to the stores; CTAs fall back to a marketing line.
+	stores: {
+		appStoreUrl: process.env.NEXT_PUBLIC_APP_STORE_URL ?? "",
+		playStoreUrl: process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? "",
+	},
 } as const;
 
 /**
