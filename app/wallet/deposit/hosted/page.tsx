@@ -71,22 +71,11 @@ export default function HostedDepositPage() {
 					className="text-cta flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
 				>
 					<ArrowLeft size={14} />
-					Embedded checkout
+					Back
 				</Link>
 			</div>
 
-			<header>
-				<div className="text-eyebrow text-[var(--color-spine)]">
-					Add funds · Hosted
-				</div>
-				<h1 className="text-page-title mt-3 text-[var(--color-text)]">
-					Pick an amount
-				</h1>
-				<p className="mt-3 max-w-xl text-[15px] text-[var(--color-text-muted)]">
-					You&apos;ll be sent to Coinflow&apos;s secure checkout and returned
-					here when done.
-				</p>
-			</header>
+			<h1 className="text-page-title text-[var(--color-text)]">Add funds</h1>
 
 			{error ? <Alert tone="error">{error}</Alert> : null}
 

@@ -33,7 +33,7 @@ export function ActivityItem({ txn, nowMs }: ActivityItemProps) {
 	const sign = isCredit ? "+" : txn.type === "withdrawal" ? "−" : "";
 	const amount = formatBalance(txn.amount);
 	const status = normalizeStatus(txn.status, txn.type);
-	const title = txn.description ?? titleFor(txn.type, status, txn.source);
+	const title = txn.description ?? titleFor(txn.type, txn.source);
 	const source = labelFor(txn.provider ?? txn.source);
 	const createdAt = walletTransactionTimestamp(txn);
 
@@ -64,7 +64,8 @@ export function ActivityItem({ txn, nowMs }: ActivityItemProps) {
 							{source}
 						</span>
 					) : null}
-					<StatusPill status={status} />
+					{/* Settled is the norm — only flag the exceptions. */}
+					{status !== "settled" ? <StatusPill status={status} /> : null}
 				</div>
 			</div>
 
@@ -93,16 +94,11 @@ function normalizeStatus(status: string | null | undefined, type: string): strin
 	return raw;
 }
 
-function titleFor(type: string, status: string, source?: string | null): string {
-	const label = statusLabel(status).toLowerCase();
-	if (type === "deposit") {
-		return status === "settled" ? "Deposit" : `Deposit ${label}`;
-	}
+// Status lives in the pill, so titles stay clean.
+function titleFor(type: string, source?: string | null): string {
+	if (type === "deposit") return "Deposit";
 	if (type === "withdrawal") {
-		if (source === "deposit_reversal") {
-			return status === "settled" ? "Deposit reversal" : `Deposit reversal ${label}`;
-		}
-		return status === "settled" ? "Withdrawal" : `Withdrawal ${label}`;
+		return source === "deposit_reversal" ? "Deposit reversal" : "Withdrawal";
 	}
 	return "Transaction";
 }

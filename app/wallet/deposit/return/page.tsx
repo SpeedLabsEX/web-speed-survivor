@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatBalance } from "@/lib/format";
@@ -67,9 +66,6 @@ function ReturnView() {
 					<br />
 					were made.
 				</h1>
-				<Alert tone="info">
-					Checkout was cancelled. You can try again any time.
-				</Alert>
 				<div className="mt-2 flex gap-3">
 					<Link href="/wallet/deposit">
 						<Button variant="primary" size="lg">
@@ -125,8 +121,8 @@ function ReturnView() {
 			) : (
 				<p className="max-w-md text-[15px] text-[var(--color-text-muted)]">
 					{waiting
-						? "Coinflow confirmed your payment. We're waiting for the wallet credit to land."
-						: "ACH bank deposits can take longer to settle. Your balance updates once Coinflow sends the settlement webhook."}
+						? "Payment confirmed — updating your balance."
+						: "Bank deposits can take longer to settle. Your balance updates automatically."}
 				</p>
 			)}
 

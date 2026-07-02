@@ -5,7 +5,6 @@ import { useEffect, type ReactNode } from "react";
 
 import { CompactHeader } from "@/components/CompactHeader";
 import { ReferralAttacher } from "@/components/ReferralAttacher";
-import { Spinner } from "@/components/ui/Spinner";
 import { useAuth } from "@/lib/auth-context";
 import { balanceCents, useBalance } from "@/lib/wallet-hooks";
 
@@ -20,12 +19,12 @@ export default function WalletLayout({ children }: { children: ReactNode }) {
 		}
 	}, [status, router]);
 
-	if (status !== "authenticated") {
-		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<Spinner size={28} />
-			</div>
-		);
+	// Middleware already guarantees a session cookie on /wallet routes, so
+	// render the shell immediately while /api/auth/me confirms in the
+	// background — pages show skeletons, data queries run in parallel. Only an
+	// explicit rejection sends the user to login.
+	if (status === "unauthenticated") {
+		return null;
 	}
 
 	return (

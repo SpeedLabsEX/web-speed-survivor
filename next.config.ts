@@ -11,6 +11,7 @@ const FIREBASE_AUTH_DOMAIN =
 
 const nextConfig: NextConfig = {
 	reactStrictMode: true,
+	poweredByHeader: false,
 	// Emit a self-contained `.next/standalone/` server bundle so the Docker
 	// production image only needs the runtime, not the full node_modules.
 	// Cuts the final image from ~800 MB → ~180 MB. The Dockerfile copies

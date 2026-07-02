@@ -1,43 +1,71 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SignJWT } from "jose";
 
-import { callApi, ApiError } from "@/lib/apiClient";
-import type { MeResponse } from "@/lib/api-types";
 import { serverEnv } from "@/lib/env";
-import { clearSessionCookie, readSessionToken } from "@/lib/session";
+import {
+	clearSessionCookie,
+	decodeSessionToken,
+	isExpired,
+	readSessionToken,
+} from "@/lib/session";
 
 const ALLOWED_PREFIXES = ["sessions", "withdrawals", "reconciliation"];
 const PAYMENTS_JWT_ISSUER = "speed-labs-api";
 const PAYMENTS_JWT_AUDIENCE = "speed-mobile-app";
 const PAYMENTS_JWT_VERSION = 2;
+const PAYMENTS_JWT_TTL = "5m";
+// Re-use a minted token until shortly before its 5m expiry.
+const MINTED_TOKEN_REUSE_MS = 4 * 60_000;
+const MINTED_TOKEN_CACHE_MAX = 500;
 
 function isAllowed(path: string): boolean {
 	return ALLOWED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 }
 
+// Session token → freshly minted payments token. Module-scope is fine: the
+// standalone server is a single long-lived Node process.
+const mintedTokens = new Map<string, { token: string; staleAtMs: number }>();
+
+/**
+ * Mint the short-lived bearer token api-payments expects.
+ *
+ * The session JWT from api-speed-survivor already carries the Firebase UID as
+ * `sub` (api-payments resolves the account from that claim alone), so we can
+ * re-sign locally — no upstream /me round-trip per request.
+ */
 async function createPaymentsBearerToken(sessionToken: string): Promise<string> {
 	const secret = serverEnv.appJwtSharedSecret;
 	if (!secret) {
 		return sessionToken;
 	}
 
-	const me = await callApi<MeResponse>("/api/v1/me", { token: sessionToken });
-	const firebaseUid = me.account.firebase_uid;
-	if (!firebaseUid) {
-		throw new Error("Account is missing Firebase UID");
+	const cached = mintedTokens.get(sessionToken);
+	if (cached && cached.staleAtMs > Date.now()) {
+		return cached.token;
 	}
 
-	return new SignJWT({
-		token_version: PAYMENTS_JWT_VERSION,
-		account_uuid: me.account.account_uuid,
-	})
+	const firebaseUid = decodeSessionToken(sessionToken)?.sub;
+	if (!firebaseUid) {
+		throw new Error("Session token is missing its subject claim");
+	}
+
+	const token = await new SignJWT({ token_version: PAYMENTS_JWT_VERSION })
 		.setProtectedHeader({ alg: "HS256" })
 		.setSubject(firebaseUid)
 		.setIssuer(PAYMENTS_JWT_ISSUER)
 		.setAudience(PAYMENTS_JWT_AUDIENCE)
 		.setIssuedAt()
-		.setExpirationTime("5m")
+		.setExpirationTime(PAYMENTS_JWT_TTL)
 		.sign(new TextEncoder().encode(secret));
+
+	if (mintedTokens.size >= MINTED_TOKEN_CACHE_MAX) {
+		mintedTokens.clear();
+	}
+	mintedTokens.set(sessionToken, {
+		token,
+		staleAtMs: Date.now() + MINTED_TOKEN_REUSE_MS,
+	});
+	return token;
 }
 
 async function forward(req: NextRequest, segments: string[]): Promise<NextResponse> {
@@ -50,15 +78,15 @@ async function forward(req: NextRequest, segments: string[]): Promise<NextRespon
 	if (!token) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
+	if (isExpired(decodeSessionToken(token))) {
+		await clearSessionCookie();
+		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+	}
 
 	let paymentsToken: string;
 	try {
 		paymentsToken = await createPaymentsBearerToken(token);
 	} catch (err) {
-		if (err instanceof ApiError && err.status === 401) {
-			await clearSessionCookie();
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
 		return NextResponse.json(
 			{ error: err instanceof Error ? err.message : "Unable to authorize payments request" },
 			{ status: 502 },

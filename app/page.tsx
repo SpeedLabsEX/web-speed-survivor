@@ -32,8 +32,7 @@ export default function LandingPage() {
 
 				<p className="mt-8 max-w-xl text-[18px] leading-relaxed text-[var(--color-text-muted)]">
 					Add money to your Speed Survivor wallet with card, ACH, Apple Pay
-					or Google Pay. Cash out winnings when the game ends. Built for the
-					player who showed up to play.
+					or Google Pay. Cash out winnings when the game ends.
 				</p>
 
 				<div className="mt-12 flex flex-col items-stretch gap-3 sm:flex-row">
@@ -45,8 +44,7 @@ export default function LandingPage() {
 				</div>
 
 				<p className="mt-6 max-w-xl text-[14px] text-[var(--color-text-muted)]">
-					New to Speed? Create your account in the mobile app, then come
-					back here to manage your wallet.
+					New to Speed? Create your account in the mobile app first.
 				</p>
 				</div>
 			</section>

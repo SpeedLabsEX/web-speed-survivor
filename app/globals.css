@@ -43,72 +43,14 @@
 	/* Motion */
 	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
-	/* Type */
-	--font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto,
-		"Helvetica Neue", Arial, sans-serif;
-	--font-display: "Space Grotesk", "Geist", system-ui, sans-serif;
+	/* Type — the actual faces are self-hosted variable fonts loaded via
+	   next/font/local in app/layout.tsx (--font-geist / --font-grotesk). */
+	--font-sans: var(--font-geist), system-ui, -apple-system, "Segoe UI",
+		Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-display: var(--font-grotesk), var(--font-geist), system-ui,
+		sans-serif;
 	--font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular,
 		monospace;
-}
-
-/* =====================================================================
-   Geist (body) + Space Grotesk (display)
-   ===================================================================== */
-@font-face {
-	font-family: "Geist";
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-400-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Geist";
-	font-weight: 500;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-500-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Geist";
-	font-weight: 600;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-600-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Geist";
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-700-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Geist";
-	font-weight: 800;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-800-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Geist";
-	font-weight: 900;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/geist@5.1.0/files/geist-latin-900-normal.woff2")
-		format("woff2");
-}
-@font-face {
-	font-family: "Space Grotesk";
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-	src: url("https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.1.0/files/space-grotesk-latin-700-normal.woff2")
-		format("woff2");
 }
 
 /* =====================================================================
@@ -202,28 +144,6 @@ body {
 }
 
 /* =====================================================================
-   Wordmark — typographic logo, replaces the green-circle placeholder
-   ===================================================================== */
-.wordmark {
-	font-family: var(--font-display);
-	font-weight: 700;
-	letter-spacing: -0.04em;
-	text-transform: uppercase;
-	color: var(--color-text);
-	display: inline-flex;
-	align-items: baseline;
-	gap: 0.18em;
-}
-.wordmark .dot {
-	display: inline-block;
-	width: 0.42em;
-	height: 0.42em;
-	background: var(--color-spine);
-	transform: translateY(-0.05em);
-	box-shadow: 0 0 24px var(--color-spine-glow);
-}
-
-/* =====================================================================
    Press scale — 120ms cubic-out, mirrors mobile PressableScale
    ===================================================================== */
 .press-scale {
@@ -266,21 +186,24 @@ body {
 	pointer-events: none;
 	z-index: 0;
 }
+/* Softness is baked into the gradient stops instead of filter: blur() —
+   three viewport-scale blurred layers repainting through 60-80s transform
+   loops were the page's dominant GPU cost. */
 .ambient .orb {
 	position: absolute;
 	aspect-ratio: 1;
 	border-radius: 9999px;
-	filter: blur(120px);
 	opacity: 0.4;
 	will-change: transform;
 }
 .ambient .orb.a {
 	width: 38vw;
 	background: radial-gradient(
-		circle at 35% 35%,
+		circle,
 		var(--color-ambient-3) 0%,
-		var(--color-ambient-2) 40%,
-		transparent 70%
+		var(--color-ambient-2) 30%,
+		rgba(31, 30, 32, 0.4) 52%,
+		transparent 72%
 	);
 	top: -10vw;
 	left: -8vw;
@@ -289,10 +212,11 @@ body {
 .ambient .orb.b {
 	width: 46vw;
 	background: radial-gradient(
-		circle at 50% 50%,
+		circle,
 		var(--color-ambient-2) 0%,
-		var(--color-ambient-1) 50%,
-		transparent 75%
+		var(--color-ambient-1) 38%,
+		rgba(26, 26, 31, 0.4) 58%,
+		transparent 76%
 	);
 	top: 35%;
 	right: -16vw;
@@ -301,10 +225,11 @@ body {
 .ambient .orb.c {
 	width: 34vw;
 	background: radial-gradient(
-		circle at 40% 40%,
+		circle,
 		var(--color-ambient-3) 0%,
-		var(--color-ambient-1) 45%,
-		transparent 70%
+		var(--color-ambient-1) 34%,
+		rgba(26, 26, 31, 0.4) 54%,
+		transparent 72%
 	);
 	bottom: -12vw;
 	left: 28%;
@@ -339,6 +264,35 @@ body {
 @media (prefers-reduced-motion: reduce) {
 	.ambient .orb {
 		animation: none !important;
+	}
+}
+
+/* =====================================================================
+   Skeleton shimmer — loading placeholders (components/ui/Skeleton.tsx)
+   ===================================================================== */
+.skeleton-shimmer {
+	background: linear-gradient(
+		100deg,
+		var(--color-panel-2) 30%,
+		var(--color-hairline) 50%,
+		var(--color-panel-2) 70%
+	);
+	background-size: 200% 100%;
+	animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.skeleton-shimmer {
+		animation: none;
 	}
 }
 

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { preconnect } from "react-dom";
 
 import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { AuthShell, OrDivider } from "@/components/auth/AuthShell";
@@ -9,10 +10,10 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
-import { useAuth } from "@/lib/auth-context";
+import { preloadFirebase, useAuth } from "@/lib/auth-context";
 
 const NO_ACCOUNT_MESSAGE =
-	"No Speed Survivor account found for this login. Sign up in the mobile app first, then come back here.";
+	"No account found for this login. Sign up in the Speed Survivor app first.";
 
 function friendlyError(err: unknown): string {
 	const msg = err instanceof Error ? err.message : String(err);
@@ -48,6 +49,9 @@ function friendlyError(err: unknown): string {
 }
 
 function LoginForm() {
+	// Firebase Auth's REST backend — warm the connection before the first
+	// sign-in call.
+	preconnect("https://identitytoolkit.googleapis.com");
 	const router = useRouter();
 	const params = useSearchParams();
 	const { status, loginWithEmail, loginWithGoogle } = useAuth();
@@ -57,6 +61,12 @@ function LoginForm() {
 	const [loadingMode, setLoadingMode] = useState<"email" | "google" | null>(null);
 
 	const next = params.get("next") || "/wallet";
+
+	// Login is the one page that needs Firebase — fetch the lazy chunk now so
+	// the first sign-in click doesn't wait on it.
+	useEffect(() => {
+		preloadFirebase();
+	}, []);
 
 	useEffect(() => {
 		if (status === "authenticated") {
@@ -99,13 +109,12 @@ function LoginForm() {
 
 	return (
 		<AuthShell
-			eyebrow="Sign in"
 			title="Welcome back."
 			footer={
 				<>
 					New here? Create your account in the{" "}
-					<span className="text-[var(--color-text)]">Speed Survivor</span>{" "}
-					mobile app, then sign in.
+					<span className="text-[var(--color-text)]">Speed Survivor</span> app
+					first.
 				</>
 			}
 		>

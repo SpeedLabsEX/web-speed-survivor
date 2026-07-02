@@ -5,7 +5,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { cn } from "@/lib/cn";
 
 interface AuthShellProps {
-	eyebrow: string;
+	eyebrow?: string;
 	title: string;
 	children: ReactNode;
 	footer?: ReactNode;
@@ -31,8 +31,12 @@ export function AuthShell({
 
 			<div className="flex flex-1 items-center justify-center px-6 py-16">
 				<div className={cn("relative z-10 w-full max-w-[420px]", className)}>
-					<div className="text-eyebrow text-[var(--color-spine)]">{eyebrow}</div>
-					<h1 className="text-page-title mt-3 text-[var(--color-text)]">
+					{eyebrow ? (
+						<div className="text-eyebrow mb-3 text-[var(--color-spine)]">
+							{eyebrow}
+						</div>
+					) : null}
+					<h1 className="text-page-title text-[var(--color-text)]">
 						{title}
 					</h1>
 

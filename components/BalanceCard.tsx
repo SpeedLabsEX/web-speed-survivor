@@ -4,7 +4,7 @@ import { ArrowUpRight, Plus } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { formatBalance } from "@/lib/format";
 
@@ -13,7 +13,6 @@ interface BalanceCardProps {
 	creditCents?: number | null;
 	withdrawableCents?: number | null;
 	loading?: boolean;
-	withdrawalsEnabled?: boolean;
 	className?: string;
 }
 
@@ -26,7 +25,6 @@ export function BalanceCard({
 	creditCents,
 	withdrawableCents,
 	loading,
-	withdrawalsEnabled = false,
 	className,
 }: BalanceCardProps) {
 	const hasCredit = (creditCents ?? 0) > 0;
@@ -44,7 +42,7 @@ export function BalanceCard({
 			<div className="mt-4 mb-8">
 				{loading && balanceCents === null ? (
 					<div className="flex h-[72px] items-center">
-						<Spinner size={28} />
+						<Skeleton className="h-12 w-52 max-w-full" />
 					</div>
 				) : (
 					<div className="text-bignum text-[var(--color-text)]">
@@ -63,12 +61,6 @@ export function BalanceCard({
 				) : null}
 			</div>
 
-			{hasCredit ? (
-				<p className="-mt-4 mb-6 text-[12px] text-[var(--color-text-muted)]">
-					Credit can be used to play but can&apos;t be withdrawn.
-				</p>
-			) : null}
-
 			<div className="h-px w-full bg-[var(--color-hairline)]" />
 
 			<div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -81,7 +73,7 @@ export function BalanceCard({
 				<Link href="/wallet/withdraw" className="flex-1">
 					<Button variant="ghost" size="lg" className="w-full">
 						<ArrowUpRight size={18} aria-hidden />
-						{withdrawalsEnabled ? "Withdraw" : "Withdraw"}
+						Withdraw
 					</Button>
 				</Link>
 			</div>

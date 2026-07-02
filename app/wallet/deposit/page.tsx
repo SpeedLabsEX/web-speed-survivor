@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { preconnect } from "react-dom";
 
 import {
 	PackagePicker,
@@ -24,13 +25,25 @@ const CoinflowEmbed = dynamic(
 	() => import("@/components/deposit/CoinflowEmbed").then((m) => m.CoinflowEmbed),
 	{
 		ssr: false,
+		// Same 520px floor as MIN_EMBED_HEIGHT in CoinflowEmbed so the panel
+		// doesn't jump when the embed mounts.
 		loading: () => (
-			<div className="flex h-[720px] items-center justify-center rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-[var(--color-panel)]">
+			<div className="flex h-[520px] flex-col items-center justify-center gap-4 rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-[var(--color-panel)]">
 				<Spinner size={28} />
+				<span className="text-eyebrow">Secure checkout</span>
 			</div>
 		),
 	},
 );
+
+/** Warm connections to the checkout origins while the user picks an amount. */
+function preconnectCoinflow() {
+	const isProd = env.coinflow.env === "prod";
+	preconnect(isProd ? "https://coinflow.cash" : "https://sandbox.coinflow.cash");
+	preconnect(isProd ? "https://api.coinflow.cash" : "https://api-sandbox.coinflow.cash");
+	// TokenEx hosts the card-number iframe inside Coinflow's checkout.
+	preconnect(isProd ? "https://htp.tokenex.com" : "https://test-htp.tokenex.com");
+}
 
 interface DepositCheckoutSession {
 	sessionKey: string;
@@ -47,6 +60,7 @@ const POLL_TIMEOUT_MS = 60_000;
 const POLL_INTERVAL_MS = 3_000;
 
 export default function DepositPage() {
+	preconnectCoinflow();
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const balanceQuery = useBalance();
@@ -63,6 +77,12 @@ export default function DepositPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [continueLoading, setContinueLoading] = useState(false);
 	const [creditState, setCreditState] = useState<CreditState>("waiting");
+
+	// Pull the Coinflow SDK chunk down while the user is still picking an
+	// amount so "Continue to checkout" doesn't wait on it.
+	useEffect(() => {
+		void import("@/components/deposit/CoinflowEmbed");
+	}, []);
 
 	const onContinue = useCallback(async () => {
 		if (!selectedPkg) {
@@ -178,30 +198,17 @@ export default function DepositPage() {
 
 	return (
 		<div className="flex flex-col gap-10">
-			<div className="flex items-center justify-between">
-				<Link
-					href="/wallet"
-					className="text-cta flex items-center gap-2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-				>
-					<ArrowLeft size={14} />
-					Wallet
-				</Link>
-				<Link
-					href="/wallet/deposit/hosted"
-					className="text-eyebrow text-[10px] tracking-[0.2em] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
-				>
-					Hosted checkout
-				</Link>
-			</div>
+			<Link
+				href="/wallet"
+				className="text-cta flex items-center gap-2 self-start text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+			>
+				<ArrowLeft size={14} />
+				Wallet
+			</Link>
 
-			<header>
-				<div className="text-eyebrow text-[var(--color-spine)]">
-					Add funds
-				</div>
-				<h1 className="text-page-title mt-3 text-[var(--color-text)]">
-					{stage === "checkout" ? "Complete checkout" : "Pick an amount"}
-				</h1>
-			</header>
+			<h1 className="text-page-title text-[var(--color-text)]">
+				{stage === "checkout" ? "Checkout" : "Add funds"}
+			</h1>
 
 			{error ? <Alert tone="error">{error}</Alert> : null}
 
@@ -236,7 +243,7 @@ export default function DepositPage() {
 							}
 							className="sm:min-w-[220px]"
 						>
-							Continue to checkout
+							Continue
 						</Button>
 					</div>
 				</>
@@ -314,8 +321,8 @@ function SuccessView({
 			) : (
 				<p className="max-w-md text-[15px] text-[var(--color-text-muted)]">
 					{waiting
-						? "Coinflow confirmed your payment. We're waiting for the wallet credit to land."
-						: "ACH bank deposits can take longer to settle. Your balance updates once Coinflow sends the settlement webhook."}
+						? "Payment confirmed — updating your balance."
+						: "Bank deposits can take longer to settle. Your balance updates automatically."}
 				</p>
 			)}
 

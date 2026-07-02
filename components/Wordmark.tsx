@@ -3,28 +3,36 @@ import { cn } from "@/lib/cn";
 interface WordmarkProps {
 	size?: "sm" | "md" | "lg" | "xl";
 	className?: string;
-	href?: string;
 }
 
-const SIZE_CLASS: Record<NonNullable<WordmarkProps["size"]>, string> = {
-	sm: "text-[18px]",
-	md: "text-[22px]",
-	lg: "text-[36px]",
-	xl: "text-[clamp(56px,12vw,120px)]",
+const SIZE_PX: Record<NonNullable<WordmarkProps["size"]>, number> = {
+	sm: 24,
+	md: 32,
+	lg: 48,
+	xl: 72,
 };
 
+// public/brand/logo-header-2x.png — 194×64 (2x of the md render size).
+const LOGO_ASPECT = 194 / 64;
+
 /**
- * Speed Survivor wordmark. Typographic — Space Grotesk, weight 700, uppercase,
- * tight tracking, with a single emerald block that doubles as the "dot" /
- * brand pulse. No raster logo.
+ * Speed Survivor logo — brand raster from the mobile app (green S mark +
+ * wordmark, transparent background).
  */
 export function Wordmark({ size = "md", className }: WordmarkProps) {
+	const height = SIZE_PX[size];
+	const width = Math.round(height * LOGO_ASPECT);
 	return (
-		<span
-			className={cn("wordmark leading-none", SIZE_CLASS[size], className)}
-			aria-label="Speed Survivor"
-		>
-			Speed<span className="dot" aria-hidden />
-		</span>
+		// eslint-disable-next-line @next/next/no-img-element -- small static
+		// asset already sized for its slot; skip the /_next/image round-trip.
+		<img
+			src="/brand/logo-header-2x.png"
+			alt="Speed Survivor"
+			width={width}
+			height={height}
+			decoding="async"
+			className={cn("select-none", className)}
+			draggable={false}
+		/>
 	);
 }

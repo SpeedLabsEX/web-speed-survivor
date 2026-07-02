@@ -11,8 +11,8 @@ import {
 } from "@/components/ActivityItem";
 import { BalanceCard } from "@/components/BalanceCard";
 import { Alert } from "@/components/ui/Alert";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
-import { env } from "@/lib/env";
 import { formatBalance } from "@/lib/format";
 import { paymentsFetch, type PaymentReconciliationResponse } from "@/lib/payments-api";
 import {
@@ -22,6 +22,9 @@ import {
 	useTransactions,
 	withdrawableCents,
 } from "@/lib/wallet-hooks";
+
+const RECONCILE_MIN_INTERVAL_MS = 60_000;
+let lastReconcileAtMs = 0;
 
 function WalletView() {
 	const params = useSearchParams();
@@ -42,6 +45,12 @@ function WalletView() {
 		: null;
 
 	useEffect(() => {
+		// Freshness sweep on the payments API. Once per minute is plenty —
+		// without the guard every wallet ⇄ deposit navigation fired another
+		// sweep on top of the normal 15s/30s polling.
+		if (Date.now() - lastReconcileAtMs < RECONCILE_MIN_INTERVAL_MS) return;
+		lastReconcileAtMs = Date.now();
+
 		let cancelled = false;
 		void paymentsFetch<PaymentReconciliationResponse>("reconciliation", {
 			method: "POST",
@@ -71,7 +80,6 @@ function WalletView() {
 				creditCents={credit}
 				withdrawableCents={withdrawable}
 				loading={balanceQuery.isLoading}
-				withdrawalsEnabled={env.features.withdrawals}
 			/>
 
 			{withdrawalNotice ? (
@@ -87,20 +95,13 @@ function WalletView() {
 			) : null}
 
 			<section>
-				<div className="mb-4 flex items-baseline justify-between">
-					<h2 className="text-section text-[var(--color-text-muted)]">
-						Recent activity
-					</h2>
-					{txQuery.isFetching ? (
-						<span className="text-eyebrow text-[10px]">Updating</span>
-					) : null}
-				</div>
+				<h2 className="text-section mb-4 text-[var(--color-text-muted)]">
+					Activity
+				</h2>
 
 				<div className="rounded-[var(--radius-panel)] bg-[var(--color-panel)] border border-[var(--color-hairline)]">
 					{txQuery.isLoading ? (
-						<div className="flex items-center justify-center py-12">
-							<Spinner size={20} />
-						</div>
+						<ActivitySkeleton />
 					) : txList.length === 0 ? (
 						<EmptyActivity />
 					) : (
@@ -147,15 +148,32 @@ export default function WalletPage() {
 	);
 }
 
+function ActivitySkeleton() {
+	return (
+		<div>
+			{[0, 1, 2].map((i) => (
+				<div
+					key={i}
+					className="flex items-center gap-4 border-b border-[var(--color-hairline)] px-5 py-4 last:border-b-0"
+				>
+					<Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+					<div className="min-w-0 flex-1">
+						<Skeleton className="h-4 w-32 max-w-full" />
+						<Skeleton className="mt-2 h-3 w-20" />
+					</div>
+					<Skeleton className="h-4 w-16" />
+				</div>
+			))}
+		</div>
+	);
+}
+
 function EmptyActivity() {
 	return (
 		<div className="px-6 py-16 text-center">
 			<div className="text-eyebrow text-[var(--color-text-dim)]">
 				No activity yet
 			</div>
-			<p className="mt-3 text-[15px] text-[var(--color-text-muted)]">
-				Your deposits and withdrawals show up here.
-			</p>
 		</div>
 	);
 }
@@ -179,17 +197,17 @@ function withdrawalNoticeFor(
 	if (status === "failed" || status === "canceled" || status === "expired") {
 		return {
 			tone: "error",
-			message: `${amount} could not be started. Funds are still available in your wallet.`,
+			message: `${amount} couldn't be started — funds are still in your wallet.`,
 		};
 	}
 	if (status === "unknown") {
 		return {
 			tone: "info",
-			message: `${amount} is being checked. Recent activity will update when the provider confirms the status.`,
+			message: `${amount} is being confirmed.`,
 		};
 	}
 	return {
 		tone: "success",
-		message: `${amount} submitted. Funds are reserved now and the status appears in Recent activity.`,
+		message: `${amount} submitted — track it in recent activity.`,
 	};
 }

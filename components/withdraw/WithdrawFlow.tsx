@@ -16,6 +16,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Panel } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import { env } from "@/lib/env";
 import { formatBalance } from "@/lib/format";
@@ -226,12 +227,7 @@ export function WithdrawFlow() {
 				Wallet
 			</Link>
 
-			<header>
-				<div className="text-eyebrow text-[var(--color-spine)]">Withdraw</div>
-				<h1 className="text-page-title mt-3 text-[var(--color-text)]">
-					Cash out
-				</h1>
-			</header>
+			<h1 className="text-page-title text-[var(--color-text)]">Cash out</h1>
 
 			{error ? <Alert tone="error">{error}</Alert> : null}
 			{profileError ? <Alert tone="error">{profileError}</Alert> : null}
@@ -293,27 +289,22 @@ function BalanceStrip({
 }) {
 	const hasCredit = (creditCents ?? 0) > 0;
 	return (
-		<Panel className="flex flex-col gap-3 p-5 sm:flex-row sm:items-end sm:justify-between">
-			<div>
-				<div className="text-eyebrow text-[var(--color-text-muted)]">
-					Available to withdraw
-				</div>
-				<div className="mt-2 text-[32px] font-extrabold tabular text-[var(--color-text)]">
-					{loading && balanceCents === null ? (
-						<Spinner size={22} />
-					) : (
-						formatBalance(balanceCents ?? 0)
-					)}
-				</div>
-				{hasCredit ? (
-					<div className="mt-1 text-sm text-[var(--color-text-muted)]">
-						{formatBalance(creditCents ?? 0)} in credit can&apos;t be withdrawn.
-					</div>
-				) : null}
+		<Panel className="p-5">
+			<div className="text-eyebrow text-[var(--color-text-muted)]">
+				Available to withdraw
 			</div>
-			<div className="text-sm text-[var(--color-text-muted)]">
-				Withdrawals update your balance as soon as funds are reserved.
+			<div className="mt-2 text-[32px] font-extrabold tabular text-[var(--color-text)]">
+				{loading && balanceCents === null ? (
+					<Skeleton className="h-8 w-36" />
+				) : (
+					formatBalance(balanceCents ?? 0)
+				)}
 			</div>
+			{hasCredit ? (
+				<div className="mt-1 text-sm text-[var(--color-text-muted)]">
+					{formatBalance(creditCents ?? 0)} in credit can&apos;t be withdrawn.
+				</div>
+			) : null}
 		</Panel>
 	);
 }
@@ -341,11 +332,7 @@ function DestinationSection({
 
 	return (
 		<section className="flex flex-col gap-4">
-			<SectionHeader
-				icon={<Building2 size={18} />}
-				label="Destination"
-				title={destinations.length > 0 ? "Choose account" : "Verify and connect"}
-			/>
+			<SectionHeader icon={<Building2 size={18} />} title="Destination" />
 
 			<div className="flex flex-col gap-3">
 				{profileLoading ? (
@@ -372,7 +359,7 @@ function DestinationSection({
 								No payout destination yet
 							</div>
 							<div className="mt-1 text-sm text-[var(--color-text-muted)]">
-								Continue through Coinflow to verify identity and add a bank account or debit card.
+								Verify your identity and add a bank or debit card.
 							</div>
 						</div>
 						<div className="flex flex-col gap-3 sm:flex-row">
@@ -461,11 +448,7 @@ function AmountSection({
 
 	return (
 		<section className="flex flex-col gap-4">
-			<SectionHeader
-				icon={<CreditCard size={18} />}
-				label="Amount"
-				title="Review payout"
-			/>
+			<SectionHeader icon={<CreditCard size={18} />} title="Amount" />
 
 			<Panel className="p-5">
 				<div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -621,27 +604,12 @@ function DestinationButton({
 	);
 }
 
-function SectionHeader({
-	icon,
-	label,
-	title,
-}: {
-	icon: ReactNode;
-	label: string;
-	title: string;
-}) {
+function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
 	return (
-		<div className="flex items-end justify-between gap-4">
-			<div>
-				<div className="text-eyebrow text-[var(--color-text-muted)]">
-					{label}
-				</div>
-				<h2 className="mt-2 flex items-center gap-2 text-[22px] font-extrabold text-[var(--color-text)]">
-					<span className="text-[var(--color-spine)]">{icon}</span>
-					{title}
-				</h2>
-			</div>
-		</div>
+		<h2 className="flex items-center gap-2 text-[22px] font-extrabold text-[var(--color-text)]">
+			<span className="text-[var(--color-spine)]">{icon}</span>
+			{title}
+		</h2>
 	);
 }
 

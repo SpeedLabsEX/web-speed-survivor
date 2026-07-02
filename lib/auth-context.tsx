@@ -1,13 +1,6 @@
 "use client";
 
-import {
-	GoogleAuthProvider,
-	getRedirectResult,
-	signInWithEmailAndPassword,
-	signInWithPopup,
-	signInWithRedirect,
-	type AuthError,
-} from "firebase/auth";
+import type { AuthError } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import {
 	createContext,
@@ -18,8 +11,6 @@ import {
 	useState,
 	type ReactNode,
 } from "react";
-
-import { getFirebaseAuth } from "./firebase";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -45,6 +36,45 @@ export function useAuth(): AuthContextValue {
 	const ctx = useContext(AuthContext);
 	if (!ctx) throw new Error("useAuth must be used within AuthProvider");
 	return ctx;
+}
+
+/**
+ * Firebase is only needed to acquire credentials (login, redirect results).
+ * Loading it lazily keeps the ~90 KB firebase/auth chunk out of every page's
+ * critical path — authenticated users never download it at all.
+ */
+async function loadFirebase() {
+	const [{ getFirebaseAuth }, authModule] = await Promise.all([
+		import("./firebase"),
+		import("firebase/auth"),
+	]);
+	return { auth: getFirebaseAuth(), authModule };
+}
+
+/** Warm the firebase chunk (e.g. on the login page) so the first click is fast. */
+export function preloadFirebase(): void {
+	void loadFirebase().catch(() => {
+		// Best-effort prefetch; real errors surface on the actual login call.
+	});
+}
+
+/**
+ * signInWithRedirect stashes a `firebase:pendingRedirect:<apiKey>:<app>` flag
+ * in sessionStorage before navigating away. Its presence is the only case
+ * where we must initialize Firebase before resolving the session — everywhere
+ * else the httpOnly cookie is the source of truth.
+ */
+function hasPendingRedirect(): boolean {
+	try {
+		for (let i = 0; i < window.sessionStorage.length; i++) {
+			if (window.sessionStorage.key(i)?.startsWith("firebase:pendingRedirect")) {
+				return true;
+			}
+		}
+	} catch {
+		// Storage access can throw in some privacy modes; treat as no redirect.
+	}
+	return false;
 }
 
 /**
@@ -120,23 +150,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	);
 
 	useEffect(() => {
-		// On every mount, check for a Firebase redirect result first. If
-		// signInWithRedirect was used (popup-blocked fallback, mobile Safari,
-		// etc.), this picks up the credential when the user lands back here
-		// and exchanges it for an app JWT before falling through to refreshMe.
+		// Resolve the session from the httpOnly cookie straight away. Firebase
+		// only enters the picture when a signInWithRedirect round-trip is in
+		// flight (popup-blocked fallback, mobile Safari): then we must exchange
+		// the redirect credential for an app JWT before falling back to
+		// refreshMe.
 		let cancelled = false;
 		(async () => {
-			try {
-				const result = await getRedirectResult(getFirebaseAuth());
-				if (cancelled) return;
-				if (result?.user) {
-					const idToken = await result.user.getIdToken();
-					await exchangeAndStore(idToken);
-					return;
-				}
-			} catch (err) {
-				if (!cancelled) {
-					setError(formatFirebaseError(err));
+			if (hasPendingRedirect()) {
+				try {
+					const { auth, authModule } = await loadFirebase();
+					const result = await authModule.getRedirectResult(auth);
+					if (cancelled) return;
+					if (result?.user) {
+						const idToken = await result.user.getIdToken();
+						await exchangeAndStore(idToken);
+						return;
+					}
+				} catch (err) {
+					if (!cancelled) {
+						setError(formatFirebaseError(err));
+					}
 				}
 			}
 			if (!cancelled) await refreshMe();
@@ -149,8 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const loginWithEmail = useCallback(
 		async (email: string, password: string) => {
 			setError(null);
-			const credential = await signInWithEmailAndPassword(
-				getFirebaseAuth(),
+			const { auth, authModule } = await loadFirebase();
+			const credential = await authModule.signInWithEmailAndPassword(
+				auth,
 				email,
 				password,
 			);
@@ -162,11 +197,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const loginWithGoogle = useCallback(async () => {
 		setError(null);
-		const provider = new GoogleAuthProvider();
+		const { auth, authModule } = await loadFirebase();
+		const provider = new authModule.GoogleAuthProvider();
 		provider.setCustomParameters({ prompt: "select_account" });
 
 		try {
-			const result = await signInWithPopup(getFirebaseAuth(), provider);
+			const result = await authModule.signInWithPopup(auth, provider);
 			const idToken = await result.user.getIdToken();
 			await exchangeAndStore(idToken);
 		} catch (err) {
@@ -180,12 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				code === "auth/operation-not-supported-in-this-environment" ||
 				code === "auth/cancelled-popup-request";
 			if (popupBlocked) {
-				try {
-					await signInWithRedirect(getFirebaseAuth(), provider);
-					return; // browser navigates away; the redirect handler resumes
-				} catch (redirectErr) {
-					throw redirectErr;
-				}
+				await authModule.signInWithRedirect(auth, provider);
+				return; // browser navigates away; the redirect handler resumes
 			}
 			throw err;
 		}
@@ -196,7 +228,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			await postJson("/api/auth/logout");
 		} finally {
 			try {
-				await getFirebaseAuth().signOut();
+				const { auth } = await loadFirebase();
+				await auth.signOut();
 			} catch {
 				// ignore
 			}

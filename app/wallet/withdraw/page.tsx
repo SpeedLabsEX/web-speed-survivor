@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { WithdrawFlow } from "@/components/withdraw/WithdrawFlow";
-import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { env } from "@/lib/env";
 
@@ -27,18 +26,11 @@ function ComingSoon() {
 			</Link>
 
 			<header>
-				<div className="text-eyebrow text-[var(--color-text-muted)]">
-					Phase 2
-				</div>
-				<h1 className="text-display mt-3 text-[var(--color-text)]">
+				<h1 className="text-display text-[var(--color-text)]">
 					Withdrawals
 					<br />
 					are next.
 				</h1>
-				<p className="mt-6 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)]">
-					Cash out via instant push-to-card, Same-Day ACH, or Standard ACH.
-					This build has withdrawals disabled.
-				</p>
 			</header>
 
 			<Link href="/wallet">

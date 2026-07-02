@@ -55,9 +55,9 @@ export function PackagePicker({
 							disabled={disabled}
 							aria-pressed={selected}
 							className={cn(
-								"press-scale flex flex-col items-start justify-between gap-3",
+								"press-scale flex items-center",
 								"rounded-[var(--radius-tile)] border p-5 text-left",
-								"min-h-[112px] bg-[var(--color-panel)]",
+								"min-h-[88px] bg-[var(--color-panel)]",
 								selected
 									? "border-[var(--color-spine)] bg-[var(--color-spine-soft)]"
 									: "border-[var(--color-hairline)] hover:border-[var(--color-hairline-2)]",
@@ -65,9 +65,6 @@ export function PackagePicker({
 						>
 							<span className="text-page-title text-[var(--color-text)] tabular">
 								{pkg.label}
-							</span>
-							<span className="text-eyebrow text-[10px] tracking-[0.2em] text-[var(--color-text-dim)]">
-								+ to wallet
 							</span>
 						</button>
 					);
