@@ -13,9 +13,17 @@ export function money(n: number): string {
 	return `${sign}$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
-/** Unsigned USD, no cents. `$500`. */
+/**
+ * Unsigned USD. Drops cents when the amount is whole, shows them otherwise —
+ * matching the mobile share card (`$24` but `$12.37`).
+ */
 export function usd(n: number): string {
-	return `$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+	const abs = Math.abs(n);
+	const hasCents = Math.round(abs * 100) % 100 !== 0;
+	return `$${abs.toLocaleString(undefined, {
+		minimumFractionDigits: hasCents ? 2 : 0,
+		maximumFractionDigits: hasCents ? 2 : 0,
+	})}`;
 }
 
 /** `1` -> `["1", "st"]`, `2` -> `["2", "nd"]`, `13` -> `["13", "th"]`. */
