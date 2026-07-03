@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 
 import { env } from "@/lib/env";
-import { fetchWin, ordinalParts, usd, winBadge } from "@/lib/win";
+import { ordinalParts, usd, winBadge } from "@/lib/win";
+import { fetchWin } from "@/lib/win-server";
 
 // 1200x630 is the canonical Open Graph / Twitter summary_large_image size.
 const WIDTH = 1200;

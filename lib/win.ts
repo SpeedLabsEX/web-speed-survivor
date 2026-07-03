@@ -1,29 +1,11 @@
 /**
- * Shared helpers for the shareable-win surface (/u/:username?win=:contestUuid
- * and its Open Graph thumbnail at /api/og/win/:username/:contestId).
+ * Pure, client-safe display helpers for the shareable-win surface.
+ *
+ * IMPORTANT: keep this module free of server-only imports (apiClient/session →
+ * next/headers). It is imported by the client component WinCardModal. The
+ * server-side data fetch lives in lib/win-server.ts.
  */
-import { ApiError, callApi } from "@/lib/apiClient";
 import type { PublicWinResponse } from "@/lib/api-types";
-
-/**
- * Server-side fetch of a shared win. No auth token so it works for logged-out
- * visitors and link-preview crawlers. Returns null on 404 (unknown profile or
- * no finalized result for the contest).
- */
-export async function fetchWin(
-	username: string,
-	contestUuid: string,
-): Promise<PublicWinResponse | null> {
-	try {
-		return await callApi<PublicWinResponse>(
-			`/api/v1/public/profiles/${encodeURIComponent(username)}/results/${encodeURIComponent(contestUuid)}`,
-			{ token: null, cache: "no-store" },
-		);
-	} catch (err) {
-		if (err instanceof ApiError && err.status === 404) return null;
-		throw err;
-	}
-}
 
 /** Signed USD, no cents. `+$500`, `-$25`, `$0`. */
 export function money(n: number): string {

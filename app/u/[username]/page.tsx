@@ -9,7 +9,8 @@ import { Panel } from "@/components/ui/Card";
 import { ApiError, callApi } from "@/lib/apiClient";
 import type { PublicProfileResponse } from "@/lib/api-types";
 import { env } from "@/lib/env";
-import { fetchWin, winHeadline } from "@/lib/win";
+import { winHeadline } from "@/lib/win";
+import { fetchWin } from "@/lib/win-server";
 
 // Public, shareable profile page. Fetched server-side with no auth token so it
 // works for logged-out visitors and link-preview crawlers.
