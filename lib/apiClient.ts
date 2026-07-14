@@ -33,7 +33,8 @@ export async function callApi<T>(
 	path: string,
 	opts: ApiCallOptions = {},
 ): Promise<T> {
-	const token = opts.token ?? (await readSessionToken());
+	const token =
+		opts.token === undefined ? await readSessionToken() : opts.token;
 	const url = `${env.apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 
 	const res = await fetch(url, {

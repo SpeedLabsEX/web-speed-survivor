@@ -50,6 +50,13 @@ const nextConfig: NextConfig = {
 					{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
 				],
 			},
+			{
+				source: "/api/auth/mobile",
+				headers: [
+					{ key: "Cache-Control", value: "no-store, max-age=0" },
+					{ key: "Referrer-Policy", value: "no-referrer" },
+				],
+			},
 		];
 	},
 };

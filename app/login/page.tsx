@@ -57,7 +57,11 @@ function LoginForm() {
 	const { status, loginWithEmail, loginWithGoogle } = useAuth();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(
+		params.get("handoff") === "invalid"
+			? "Your secure wallet link expired. Sign in to continue."
+			: null,
+	);
 	const [loadingMode, setLoadingMode] = useState<"email" | "google" | null>(null);
 
 	const next = params.get("next") || "/wallet";
