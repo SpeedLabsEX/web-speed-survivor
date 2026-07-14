@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { cn } from "@/lib/cn";
 import { env } from "@/lib/env";
 
@@ -27,7 +29,7 @@ export function depositPackages(): DepositPackage[] {
 
 interface PackagePickerProps {
 	selectedId: string | null;
-	onSelect: (pkg: DepositPackage) => void;
+	onSelect: (pkg: DepositPackage | null) => void;
 	customCents: number | null;
 	onCustomChange: (cents: number | null) => void;
 	disabled?: boolean;
@@ -76,9 +78,11 @@ export function PackagePicker({
 				selected={selectedId === "custom"}
 				onChange={(cents) => {
 					onCustomChange(cents);
-					if (cents !== null) {
-						onSelect({ id: "custom", label: "Custom", cents });
-					}
+					onSelect(
+						cents === null
+							? null
+							: { id: "custom", label: "Custom", cents },
+					);
 				}}
 				disabled={disabled}
 			/>
@@ -99,7 +103,16 @@ function CustomAmountInput({
 	onChange,
 	disabled,
 }: CustomAmountInputProps) {
-	const dollars = value === null ? "" : (value / 100).toFixed(2);
+	const [rawValue, setRawValue] = useState(
+		value === null ? "" : (value / 100).toFixed(2),
+	);
+	const [editing, setEditing] = useState(false);
+
+	useEffect(() => {
+		if (!editing) {
+			setRawValue(value === null ? "" : (value / 100).toFixed(2));
+		}
+	}, [editing, value]);
 
 	return (
 		<label
@@ -115,22 +128,30 @@ function CustomAmountInput({
 			</span>
 			<span className="text-[var(--color-text-muted)]">$</span>
 			<input
-				type="number"
+				type="text"
 				inputMode="decimal"
-				min="0.01"
-				step="0.01"
-				value={dollars}
+				value={rawValue}
 				disabled={disabled}
 				placeholder="0.00"
 				onChange={(e) => {
 					const raw = e.target.value;
+					if (!/^\d*(?:\.\d{0,2})?$/.test(raw)) return;
+
+					setRawValue(raw);
 					if (!raw) {
 						onChange(null);
 						return;
 					}
 					const parsed = Number.parseFloat(raw);
-					if (!Number.isFinite(parsed)) return;
-					onChange(Math.max(1, Math.round(parsed * 100)));
+					const cents = Math.round(parsed * 100);
+					onChange(Number.isSafeInteger(cents) && cents >= 1 ? cents : null);
+				}}
+				onFocus={() => setEditing(true)}
+				onBlur={() => {
+					setEditing(false);
+					if (value !== null) {
+						setRawValue((value / 100).toFixed(2));
+					}
 				}}
 				className="flex-1 bg-transparent text-[15px] tabular text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-dim)]"
 			/>

@@ -84,7 +84,7 @@ export default function HostedDepositPage() {
 				customCents={customCents}
 				onSelect={(p) => {
 					setSelectedPkg(p);
-					if (p.id !== "custom") setCustomCents(null);
+					if (p?.id !== "custom") setCustomCents(null);
 				}}
 				onCustomChange={setCustomCents}
 				disabled={loading}
