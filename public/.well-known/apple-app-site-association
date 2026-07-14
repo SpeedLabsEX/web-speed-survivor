@@ -1,0 +1,23 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["W5KM8XV67R.com.speedsurvivor.qa"],
+        "components": [
+          {
+            "/": "/u/*",
+            "comment": "Public profiles and shared win links (/u/:username?win=)"
+          },
+          {
+            "/": "/invite/*",
+            "comment": "Referral invite links"
+          },
+          {
+            "/": "/contest/*",
+            "comment": "Contest deep links"
+          }
+        ]
+      }
+    ]
+  }
+}

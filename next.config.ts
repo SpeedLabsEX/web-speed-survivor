@@ -32,6 +32,15 @@ const nextConfig: NextConfig = {
 	async headers() {
 		return [
 			{
+				// Apple fetches /.well-known/apple-app-site-association and expects
+				// application/json. The file is intentionally extensionless (Apple
+				// requirement), so Next can't infer the type from a suffix — pin it
+				// here. assetlinks.json already resolves to application/json via its
+				// extension and needs no override.
+				source: "/.well-known/apple-app-site-association",
+				headers: [{ key: "Content-Type", value: "application/json" }],
+			},
+			{
 				// Exclude the proxied Firebase auth paths (`/__/...`) from the
 				// framing-blocking headers below. The auth resolver loads
 				// `<authDomain>/__/auth/iframe` in an iframe; now that authDomain is
