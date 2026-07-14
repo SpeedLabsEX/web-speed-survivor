@@ -166,3 +166,39 @@ export interface PublicWinResponse {
 	pnl: number;
 	is_winner: boolean;
 }
+
+/** A single prize tier on a contest payout ladder. */
+export interface PublicContestPayoutTier {
+	place: string;
+	amount: string;
+}
+
+/**
+ * A single contest's public/shareable info — mirrors ContestCardDTO in
+ * api-speed-survivor/modules/contest_feed/dtos/contest_card.py
+ * (GET /api/v1/public/contests/{header_uuid}). Registration state and the SSE
+ * channel id are stripped server-side for anonymous viewers.
+ */
+export interface PublicContest {
+	header_uuid: string;
+	title: string;
+	sponsor_name?: string | null;
+	sponsor_logo?: string | null;
+	grand_prize: number;
+	total_prize_pool: number;
+	max_prize_pool: number;
+	payouts: PublicContestPayoutTier[];
+	entry_fee: string;
+	status: string;
+	is_live: boolean;
+	is_registration_open: boolean;
+	image_url?: string | null;
+	description?: string | null;
+	payout_detail?: string | null;
+	contest_date?: string | null;
+	start_time?: string | null;
+	sport: string;
+	participant_count: number;
+	pool_size_max: number;
+	model_type: string;
+}

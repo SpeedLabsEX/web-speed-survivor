@@ -23,7 +23,7 @@ export const env = {
 	appUrl: requirePublic(
 		"NEXT_PUBLIC_APP_URL",
 		process.env.NEXT_PUBLIC_APP_URL,
-		"https://seal-app-nv6db.ondigitalocean.app",
+		"https://app.speedsurvivor.com",
 	),
 	firebase: {
 		apiKey: requirePublic(
