@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { ContestCountdown } from "@/components/ContestCountdown";
 import { ContestStartTime } from "@/components/ContestStartTime";
 import { Wordmark } from "@/components/Wordmark";
 import { Panel } from "@/components/ui/Card";
@@ -162,10 +163,13 @@ export default async function ContestDetailsPage({
 							contest.is_live ? (
 								"Live Now"
 							) : contest.start_time ? (
-								<ContestStartTime
-									startTime={contest.start_time}
-									fallback={startFallback(contest.start_time)}
-								/>
+								<>
+									<ContestStartTime
+										startTime={contest.start_time}
+										fallback={startFallback(contest.start_time)}
+									/>
+									<ContestCountdown startTime={contest.start_time} />
+								</>
 							) : (
 								"TBD"
 							)
