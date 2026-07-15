@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { callApi } from "@/lib/apiClient";
+import { env } from "@/lib/env";
 import { setSessionCookie } from "@/lib/session";
 
 interface HandoffRedemption {
@@ -21,8 +22,12 @@ function redirectResponse(url: URL): NextResponse {
 	return response;
 }
 
-function loginFallback(req: NextRequest): NextResponse {
-	const url = new URL("/login", req.url);
+function appUrl(path: string): URL {
+	return new URL(path, `${env.appUrl.replace(/\/+$/, "")}/`);
+}
+
+function loginFallback(): NextResponse {
+	const url = appUrl("/login");
 	url.searchParams.set("next", "/wallet");
 	url.searchParams.set("handoff", "invalid");
 	return redirectResponse(url);
@@ -39,7 +44,7 @@ function safeRedirectPath(value: string): string | null {
 export async function GET(req: NextRequest): Promise<NextResponse> {
 	const code = req.nextUrl.searchParams.get("code")?.trim();
 	if (!code || code.length < 32 || code.length > 128) {
-		return loginFallback(req);
+		return loginFallback();
 	}
 
 	try {
@@ -53,12 +58,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 		);
 		const redirectPath = safeRedirectPath(redemption.redirect_path);
 		if (!redemption.token || !redirectPath) {
-			return loginFallback(req);
+			return loginFallback();
 		}
 
 		await setSessionCookie(redemption.token);
-		return redirectResponse(new URL(redirectPath, req.url));
+		return redirectResponse(appUrl(redirectPath));
 	} catch {
-		return loginFallback(req);
+		return loginFallback();
 	}
 }
