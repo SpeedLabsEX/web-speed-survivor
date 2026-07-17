@@ -159,6 +159,20 @@ export async function GET(
 					>
 						{win.contest_name}
 					</div>
+					{win.username ? (
+						<div
+							style={{
+								display: "flex",
+								fontSize: 26,
+								fontWeight: 700,
+								fontStyle: "italic",
+								letterSpacing: 0.5,
+								color: INK_60,
+							}}
+						>
+							@{win.username}
+						</div>
+					) : null}
 				</div>
 
 				{/* Final rank */}
